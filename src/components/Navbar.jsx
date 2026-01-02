@@ -81,7 +81,7 @@ const Navbar = () => {
                             </span>
                         )}
                     </Link>
-                    <Link to="/auth">
+                    <Link to="/login">
                         <Button variant="primary">Login / Register</Button>
                     </Link>
                 </div>
