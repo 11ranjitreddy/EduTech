@@ -1,11 +1,22 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Play, Calendar, User, CheckCircle, Clock } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const CourseDetail = () => {
     const { id } = useParams();
     const { addToCart } = useCart();
+    const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    const handleAddToCart = () => {
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: `/course/${id}` } });
+            return;
+        }
+        addToCart(course);
+    };
 
     // Mock Data - normally fetch by ID
     const course = {
@@ -48,7 +59,7 @@ const CourseDetail = () => {
                             <button
                                 className="btn btn-primary"
                                 style={{ padding: '0.75rem 2rem', fontSize: '1.1rem' }}
-                                onClick={() => addToCart(course)}
+                                onClick={handleAddToCart}
                             >
                                 Add to Cart - ₹{course.price}
                             </button>

@@ -1,11 +1,23 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from './Button';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import './CourseCard.css';
 
 const CourseCard = ({ course }) => {
     const { addToCart } = useCart();
+    const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
     const { title, instructor, price, rating, image, category } = course;
+
+    const handleAddToCart = () => {
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: '/courses' } });
+            return;
+        }
+        addToCart(course);
+    };
 
     return (
         <div className="course-card">
@@ -37,7 +49,7 @@ const CourseCard = ({ course }) => {
                     <Button
                         variant="outline"
                         className="add-cart-btn-sm"
-                        onClick={() => addToCart(course)}
+                        onClick={handleAddToCart}
                     >
                         Add
                     </Button>

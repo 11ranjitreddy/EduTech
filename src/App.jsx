@@ -41,8 +41,8 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
-              <Route path="/course/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/course/:id" element={<CourseDetail />} />
               <Route path="/learn/:id" element={<ProtectedRoute><CourseLearning /></ProtectedRoute>} />
               <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
               <Route path="/contact" element={<Contact />} />
