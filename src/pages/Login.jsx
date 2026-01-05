@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/Button';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 const Login = () => {
@@ -10,6 +11,10 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
+    const { login } = useAuth();
+
+    const from = location.state?.from || '/courses';
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -22,8 +27,14 @@ const Login = () => {
         }
 
         // Mock successful login
-        alert('Login successful! Redirecting to courses...');
-        navigate('/courses');
+        const userData = {
+            email: email,
+            name: email.split('@')[0],
+            role: 'student'
+        };
+
+        login(userData);
+        navigate(from, { replace: true });
     };
 
     const handleGoogleLogin = () => {

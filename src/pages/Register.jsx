@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import { Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 const Register = () => {
@@ -22,6 +23,7 @@ const Register = () => {
     const [error, setError] = useState('');
     const [passwordStrength, setPasswordStrength] = useState('');
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     // OTP Timer countdown
     useEffect(() => {

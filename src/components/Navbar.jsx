@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Button from './Button';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
     const { cartCount } = useCart();
+    const { isAuthenticated, user, logout } = useAuth();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     return (
@@ -81,9 +83,16 @@ const Navbar = () => {
                             </span>
                         )}
                     </Link>
-                    <Link to="/login">
-                        <Button variant="primary">Login / Register</Button>
-                    </Link>
+                    {isAuthenticated ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>Hi, {user?.name}</span>
+                            <Button variant="outline" onClick={logout}>Logout</Button>
+                        </div>
+                    ) : (
+                        <Link to="/login">
+                            <Button variant="primary">Login / Register</Button>
+                        </Link>
+                    )}
                 </div>
             </div>
         </nav>
