@@ -57,6 +57,9 @@ const Navbar = () => {
                     </div>
 
                     <Link to="/contact" className="nav-link">Contact Us</Link>
+                    {isAuthenticated && (
+                        <Link to="/my-courses" className="nav-link" style={{ color: 'var(--primary)', fontWeight: '600' }}>My Learning</Link>
+                    )}
                 </div>
 
                 {/* Auth Buttons */}

@@ -1,0 +1,181 @@
+.journey-map {
+    background: white;
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+}
+
+.journey-track {
+    display: flex;
+    align-items: center;
+    min-width: max-content;
+    padding: 1rem 0;
+}
+
+/* Connector Lines */
+.journey-connector {
+    width: 60px;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+.journey-connector.completed {
+    background: linear-gradient(90deg, #10B981, #34D399);
+}
+
+/* Module Nodes */
+.journey-node {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.journey-node:hover:not(.locked) {
+    transform: translateY(-4px);
+}
+
+.journey-node.locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.node-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    border: 3px solid #e5e7eb;
+    color: #9ca3af;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 2;
+}
+
+/* Completed State */
+.journey-node.completed .node-circle {
+    background: linear-gradient(135deg, #10B981, #059669);
+    border-color: #10B981;
+    color: white;
+}
+
+/* Current State */
+.journey-node.current .node-circle {
+    background: linear-gradient(135deg, #4F46E5, #7C3AED);
+    border-color: #4F46E5;
+    color: white;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+    animation: pulse-current 2s ease infinite;
+}
+
+@keyframes pulse-current {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.1);
+    }
+}
+
+/* Locked State */
+.journey-node.locked .node-circle {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    color: #9ca3af;
+}
+
+/* Labels */
+.node-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.75rem;
+    text-align: center;
+    max-width: 80px;
+}
+
+.module-number {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.module-title {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+
+.journey-node.current .module-title {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Progress Ring */
+.node-progress {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 56px;
+    height: 56px;
+}
+
+.progress-ring {
+    width: 100%;
+    height: 100%;
+}
+
+.progress-ring svg {
+    transform: rotate(-90deg);
+}
+
+.progress-bg {
+    fill: none;
+    stroke: #e5e7eb;
+    stroke-width: 3;
+}
+
+.progress-fill {
+    fill: none;
+    stroke: #4F46E5;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .journey-map {
+        padding: 1rem;
+    }
+
+    .journey-connector {
+        width: 30px;
+    }
+
+    .node-circle {
+        width: 40px;
+        height: 40px;
+    }
+
+    .node-label {
+        display: none;
+    }
+}

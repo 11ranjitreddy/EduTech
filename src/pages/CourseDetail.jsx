@@ -64,7 +64,7 @@ const CourseDetail = () => {
                                 Add to Cart - ₹{course.price}
                             </button>
                             {/* Mock "Go to Learning" for demo */}
-                            <Link to={`/learn/${id}`} className="btn btn-primary" style={{ background: '#10B981', borderColor: '#10B981', color: 'white' }}>
+                            <Link to={`/learnv2/${id}`} className="btn btn-primary" style={{ background: '#10B981', borderColor: '#10B981', color: 'white' }}>
                                 <Play size={20} /> Start Learning (Demo)
                             </Link>
                         </div>

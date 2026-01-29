@@ -1,17 +1,40 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Button from '../components/Button';
 import './Checkout.css';
 import { CreditCard, QrCode, Smartphone } from 'lucide-react';
 
 const Checkout = () => {
-    const { cart, cartTotal } = useCart();
+    const { cart, cartTotal, completePurchase } = useCart();
+    const navigate = useNavigate();
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [upiId, setUpiId] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Calculate total assuming 10% discount if applied (mock logic for demo transfer)
     // In real app, discount would be passed via context or query param
     const finalTotal = cartTotal;
+
+    const handlePayment = () => {
+        setIsProcessing(true);
+
+        // Simulate payment processing
+        setTimeout(() => {
+            const purchasedItems = completePurchase();
+
+            // Navigate to success page with order details
+            navigate('/order-success', {
+                state: {
+                    orderId: `ORD${Date.now()}`,
+                    amount: finalTotal,
+                    courses: purchasedItems,
+                    paymentMethod: paymentMethod === 'card' ? 'Credit/Debit Card' :
+                        paymentMethod === 'upi' ? 'UPI' : 'QR Code Payment'
+                }
+            });
+        }, 1500);
+    };
 
     return (
         <div className="checkout-page container">
@@ -140,8 +163,13 @@ const Checkout = () => {
                             <span>₹{finalTotal.toFixed(2)}</span>
                         </div>
 
-                        <Button variant="primary" className="btn-block mt-4">
-                            Complete Payment
+                        <Button
+                            variant="primary"
+                            className="btn-block mt-4"
+                            onClick={handlePayment}
+                            disabled={isProcessing || cart.length === 0}
+                        >
+                            {isProcessing ? 'Processing...' : 'Complete Payment'}
                         </Button>
 
                         <div className="secure-badge">
