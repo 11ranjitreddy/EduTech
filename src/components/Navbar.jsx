@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Moved useAuth import
 import Button from './Button';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
     const { cartCount } = useCart();
-    const { isAuthenticated, user, logout } = useAuth();
+    const { user, isAuthenticated, logout } = useAuth(); // Changed order of destructuring
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     return (
@@ -64,7 +64,7 @@ const Navbar = () => {
 
                 {/* Auth Buttons */}
                 <div className="navbar-auth">
-                    <Link to="/cart" className="cart-icon" style={{ position: 'relative' }}>
+                    <Link to="/cart" className="cart-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
                         {cartCount > 0 && (
                             <span style={{

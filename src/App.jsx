@@ -1,7 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import AdminLayout from './layouts/AdminLayout';
+
+// Student Pages
 import Home from './pages/Home';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
@@ -16,18 +24,27 @@ import ForgotPassword from './pages/ForgotPassword';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
 import MyCourses from './pages/MyCourses';
-import ProtectedRoute from './components/ProtectedRoute';
-import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
 
-const Layout = ({ children }) => {
+// Admin Pages
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminCourses from './pages/Admin/AdminCourses';
+import AdminStudents from './pages/Admin/AdminStudents';
+
+const MainLayout = ({ children }) => {
   const location = useLocation();
-  // Hide footer on Learning page to maximize view area
-  const showFooter = !location.pathname.startsWith('/learn');
+  const { user } = useAuth();
+
+  // If user is admin and on admin route, we don't show Student Navbar/Footer
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // Custom hide logic for immersive pages
+  const isLearningPage = location.pathname.startsWith('/learning') || location.pathname.startsWith('/learn');
+  const showFooter = !isLearningPage && !isAdminRoute;
+  const showNavbar = !isAdminRoute;
 
   return (
     <div className="app-layout">
-      <Navbar />
+      {showNavbar && <Navbar />}
       <main className="main-content">
         {children}
       </main>
@@ -36,32 +53,73 @@ const Layout = ({ children }) => {
   );
 };
 
-function App() {
+function AppRoutes() {
   return (
-    <Router>
-      <AuthProvider>
-        <CartProvider>
-          <Layout>
+    <Routes>
+      {/* Admin Routes */}
+      <Route
+        path="/admin/*"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminLayout>
+              <Routes>
+                <Route index element={<AdminDashboard />} />
+                <Route path="courses" element={<AdminCourses />} />
+                <Route path="students" element={<AdminStudents />} />
+                <Route path="revenue" element={<div>Admin Revenue Placeholder</div>} />
+              </Routes>
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Student/General Routes */}
+      <Route
+        path="/*"
+        element={
+          <MainLayout>
             <Routes>
+              {/* Home & Discovery */}
               <Route path="/" element={<Home />} />
               <Route path="/courses" element={<Courses />} />
               <Route path="/course/:id" element={<CourseDetail />} />
-              <Route path="/learn/:id" element={<ProtectedRoute><CourseLearning /></ProtectedRoute>} />
-              <Route path="/learnv2/:id" element={<ProtectedRoute><CourseLearningV2 /></ProtectedRoute>} />
-              <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+
+              {/* Learning (Protected) */}
+              <Route path="/learning/:id" element={<ProtectedRoute><CourseLearning /></ProtectedRoute>} />
+              <Route path="/learn/:id" element={<ProtectedRoute><CourseLearningV2 /></ProtectedRoute>} />
+              <Route path="/my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
+
+              {/* E-commerce (Protected where needed) */}
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+              <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
+
+              {/* Support & Auth */}
               <Route path="/contact" element={<Contact />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-              <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
-              <Route path="/my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
+
+              {/* Demo/Helper */}
+              <Route path="/demo-learning" element={<CourseLearning />} />
             </Routes>
-          </Layout>
-        </CartProvider>
-      </AuthProvider>
-    </Router>
+          </MainLayout>
+        }
+      />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 

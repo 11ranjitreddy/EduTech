@@ -1,43 +1,66 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
-const AuthContext = createContext();
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
-    return context;
-};
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    // Check if user is logged in (from localStorage)
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
+        // Check for stored user on mount
+        const storedUser = localStorage.getItem('edtech_user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
             setIsAuthenticated(true);
         }
+        setLoading(false);
     }, []);
 
-    const login = (userData) => {
+    const login = (email, password) => {
+        // Mock authentication logic
+        let role = 'student';
+        if (email.toLowerCase().includes('admin')) {
+            role = 'admin';
+            const is2faSetup = localStorage.getItem(`2fa_setup_${email}`) === 'true';
+            return { requires2fa: true, isSetupRequired: !is2faSetup, email, role };
+        }
+
+        const userData = { email, role, name: email.split('@')[0] };
         setUser(userData);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('edtech_user', JSON.stringify(userData));
+        return { role };
+    };
+
+    const confirm2faSetup = (email) => {
+        localStorage.setItem(`2fa_setup_${email}`, 'true');
+    };
+
+    const verify2fa = (email, role, otp) => {
+        // Mock OTP verification
+        if (otp === '123456') {
+            const userData = { email, role, name: email.split('@')[0] };
+            setUser(userData);
+            setIsAuthenticated(true);
+            localStorage.setItem('edtech_user', JSON.stringify(userData));
+            confirm2faSetup(email); // Ensure marked as setup
+            return true;
+        }
+        return false;
     };
 
     const logout = () => {
         setUser(null);
         setIsAuthenticated(false);
-        localStorage.removeItem('user');
+        localStorage.removeItem('edtech_user');
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-            {children}
+        <AuthContext.Provider value={{ user, isAuthenticated, login, verify2fa, confirm2faSetup, logout, loading }}>
+            {!loading && children}
         </AuthContext.Provider>
     );
 };
+
+export const useAuth = () => useContext(AuthContext);

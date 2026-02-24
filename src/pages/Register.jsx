@@ -108,9 +108,10 @@ const Register = () => {
         // Mock verification (in production: API call)
         if (otpValue === '123456') {
             alert('Account created successfully! Redirecting...');
+            login(formData.email, formData.password);
             navigate('/courses');
         } else {
-            setError('Invalid OTP. Please try again.');
+            setError('Invalid OTP. Please try again. (Hint: 123456)');
         }
     };
 
