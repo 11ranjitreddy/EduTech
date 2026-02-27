@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
-import { Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Eye, EyeOff, Mail } from 'lucide-react';
 import './Auth.css';
 
+const BASE_URL = 'http://localhost:8081/api/v1/auth';
+
 const Register = () => {
-    const [step, setStep] = useState(1); // 1: Form, 2: OTP Verification
+    const [step, setStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [formData, setFormData] = useState({
@@ -21,11 +22,10 @@ const Register = () => {
     const [otpTimer, setOtpTimer] = useState(60);
     const [canResend, setCanResend] = useState(false);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState('');
     const navigate = useNavigate();
-    const { login } = useAuth();
 
-    // OTP Timer countdown
     useEffect(() => {
         if (step === 2 && otpTimer > 0) {
             const timer = setTimeout(() => setOtpTimer(otpTimer - 1), 1000);
@@ -49,12 +49,13 @@ const Register = () => {
         setPasswordStrength(calculatePasswordStrength(newPassword));
     };
 
-    const handleSendOTP = (e) => {
+    // ✅ Real API - Send OTP
+    const handleSendOTP = async (e) => {
         e.preventDefault();
         setError('');
 
-        // Validation
-        if (!formData.fullName || !formData.email || !formData.mobile || !formData.password || !formData.confirmPassword) {
+        if (!formData.fullName || !formData.email || !formData.mobile ||
+            !formData.password || !formData.confirmPassword) {
             setError('Please fill in all fields');
             return;
         }
@@ -69,35 +70,45 @@ const Register = () => {
             return;
         }
 
-        // Mock: Send OTP
-        alert(`OTP sent to ${formData.email}`);
-        setStep(2);
-        setOtpTimer(60);
-        setCanResend(false);
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `${BASE_URL}/send-otp?email=${formData.email}`,
+                { method: 'POST' }
+            );
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to send OTP');
+
+            setStep(2);
+            setOtpTimer(60);
+            setCanResend(false);
+        } catch (err) {
+            setError(err.message || 'Failed to send OTP. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleOtpChange = (index, value) => {
-        if (value.length > 1) return; // Only single digit
-
+        if (value.length > 1) return;
         const newOtp = [...otp];
         newOtp[index] = value;
         setOtp(newOtp);
-
-        // Auto-focus next input
         if (value && index < 5) {
             document.getElementById(`otp-${index + 1}`)?.focus();
         }
     };
 
     const handleOtpKeyDown = (index, e) => {
-        // Handle backspace
         if (e.key === 'Backspace' && !otp[index] && index > 0) {
             document.getElementById(`otp-${index - 1}`)?.focus();
         }
     };
 
-    const handleVerifyOTP = (e) => {
+    // ✅ Real API - Verify OTP + Register
+    const handleVerifyOTP = async (e) => {
         e.preventDefault();
+        setError('');
         const otpValue = otp.join('');
 
         if (otpValue.length !== 6) {
@@ -105,28 +116,59 @@ const Register = () => {
             return;
         }
 
-        // Mock verification (in production: API call)
-        if (otpValue === '123456') {
-            alert('Account created successfully! Redirecting...');
-            login(formData.email, formData.password);
-            navigate('/courses');
-        } else {
-            setError('Invalid OTP. Please try again. (Hint: 123456)');
+        setLoading(true);
+        try {
+            // Step 1: Verify OTP
+            const verifyResponse = await fetch(
+                `${BASE_URL}/verify-otp?email=${formData.email}&otp=${otpValue}`,
+                { method: 'POST' }
+            );
+            const verifyData = await verifyResponse.json();
+            if (!verifyResponse.ok) throw new Error(verifyData.message || 'Invalid OTP');
+
+            // Step 2: Register user
+            const registerResponse = await fetch(`${BASE_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    password: formData.password,
+                    mobile: formData.mobile
+                })
+            });
+            const registerData = await registerResponse.json();
+            if (!registerResponse.ok) throw new Error(registerData.message || 'Registration failed');
+
+            navigate('/login');
+        } catch (err) {
+            setError(err.message || 'Verification failed. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleResendOTP = () => {
+    // ✅ Real API - Resend OTP
+    const handleResendOTP = async () => {
         if (!canResend) return;
+        setError('');
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `${BASE_URL}/send-otp?email=${formData.email}`,
+                { method: 'POST' }
+            );
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to resend OTP');
 
-        alert(`OTP resent to ${formData.email}`);
-        setOtpTimer(60);
-        setCanResend(false);
-        setOtp(['', '', '', '', '', '']);
-    };
-
-    const handleGoogleSignup = () => {
-        alert('Google OAuth integration - Email auto-verified');
-        // In production: window.location.href = '/auth/google'
+            setOtpTimer(60);
+            setCanResend(false);
+            setOtp(['', '', '', '', '', '']);
+        } catch (err) {
+            setError(err.message || 'Failed to resend OTP');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -205,11 +247,8 @@ const Register = () => {
                                         value={formData.password}
                                         onChange={handlePasswordChange}
                                     />
-                                    <button
-                                        type="button"
-                                        className="password-toggle"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                    >
+                                    <button type="button" className="password-toggle"
+                                        onClick={() => setShowPassword(!showPassword)}>
                                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                     </button>
                                 </div>
@@ -235,24 +274,22 @@ const Register = () => {
                                         value={formData.confirmPassword}
                                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                     />
-                                    <button
-                                        type="button"
-                                        className="password-toggle"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    >
+                                    <button type="button" className="password-toggle"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                                         {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                     </button>
                                 </div>
                             </div>
 
-                            <Button variant="primary" type="submit" className="btn-block" style={{ marginTop: '1rem' }}>
-                                Send OTP
+                            <Button variant="primary" type="submit" className="btn-block"
+                                style={{ marginTop: '1rem' }} disabled={loading}>
+                                {loading ? 'Sending OTP...' : 'Send OTP'}
                             </Button>
                         </form>
 
                         <div className="auth-divider">or</div>
 
-                        <button className="google-btn" onClick={handleGoogleSignup}>
+                        <button className="google-btn" onClick={() => alert('Google OAuth coming soon')}>
                             <svg className="google-icon" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -270,13 +307,10 @@ const Register = () => {
                     <>
                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                             <div style={{
-                                width: '60px',
-                                height: '60px',
+                                width: '60px', height: '60px',
                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                borderRadius: '50%', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
                                 margin: '0 auto 1rem'
                             }}>
                                 <Mail size={30} color="white" />
@@ -296,10 +330,8 @@ const Register = () => {
                                     Enter OTP
                                 </label>
                                 <div style={{
-                                    display: 'flex',
-                                    gap: '0.5rem',
-                                    justifyContent: 'center',
-                                    marginBottom: '1.5rem'
+                                    display: 'flex', gap: '0.5rem',
+                                    justifyContent: 'center', marginBottom: '1.5rem'
                                 }}>
                                     {otp.map((digit, index) => (
                                         <input
@@ -311,12 +343,9 @@ const Register = () => {
                                             onChange={(e) => handleOtpChange(index, e.target.value)}
                                             onKeyDown={(e) => handleOtpKeyDown(index, e)}
                                             style={{
-                                                width: '50px',
-                                                height: '50px',
-                                                textAlign: 'center',
-                                                fontSize: '1.5rem',
-                                                fontWeight: '600',
-                                                border: '2px solid #e5e7eb',
+                                                width: '50px', height: '50px',
+                                                textAlign: 'center', fontSize: '1.5rem',
+                                                fontWeight: '600', border: '2px solid #e5e7eb',
                                                 borderRadius: '12px'
                                             }}
                                         />
@@ -330,39 +359,28 @@ const Register = () => {
                                         Resend OTP in <strong>{otpTimer}s</strong>
                                     </p>
                                 ) : (
-                                    <button
-                                        type="button"
-                                        onClick={handleResendOTP}
+                                    <button type="button" onClick={handleResendOTP}
                                         style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--primary)',
-                                            fontWeight: '600',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem'
-                                        }}
-                                    >
+                                            background: 'none', border: 'none',
+                                            color: 'var(--primary)', fontWeight: '600',
+                                            cursor: 'pointer', fontSize: '0.9rem'
+                                        }}>
                                         Resend OTP
                                     </button>
                                 )}
                             </div>
 
-                            <Button variant="primary" type="submit" className="btn-block">
-                                Verify & Create Account
+                            <Button variant="primary" type="submit" className="btn-block" disabled={loading}>
+                                {loading ? 'Verifying...' : 'Verify & Create Account'}
                             </Button>
 
                             <div className="auth-footer" style={{ marginTop: '1.5rem' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => setStep(1)}
+                                <button type="button" onClick={() => setStep(1)}
                                     style={{
-                                        background: 'none',
-                                        border: 'none',
+                                        background: 'none', border: 'none',
                                         color: 'var(--text-secondary)',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem'
-                                    }}
-                                >
+                                        cursor: 'pointer', fontSize: '0.9rem'
+                                    }}>
                                     ← Back to registration
                                 </button>
                             </div>

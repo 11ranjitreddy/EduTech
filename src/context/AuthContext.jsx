@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext(null);
+const BASE_URL = 'http://localhost:8081/api/v1/auth';
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -8,7 +9,6 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for stored user on mount
         const storedUser = localStorage.getItem('edtech_user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
@@ -17,37 +17,73 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    const login = (email, password) => {
-        // Mock authentication logic
-        let role = 'student';
-        if (email.toLowerCase().includes('admin')) {
-            role = 'admin';
-            const is2faSetup = localStorage.getItem(`2fa_setup_${email}`) === 'true';
-            return { requires2fa: true, isSetupRequired: !is2faSetup, email, role };
+    const login = async (email, password) => {
+        const response = await fetch(`${BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Login failed');
+
+        const result = data.data;
+
+        if (result.requiresMfa) {
+            return {
+                requires2fa: true,
+                isSetupRequired: result.mfaSetupRequired,
+                email,
+                role: result.role
+            };
         }
 
-        const userData = { email, role, name: email.split('@')[0] };
+        const userData = {
+            email,
+            role: result.role,
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+            name: email.split('@')[0]
+        };
         setUser(userData);
         setIsAuthenticated(true);
         localStorage.setItem('edtech_user', JSON.stringify(userData));
-        return { role };
+        return { role: result.role };
     };
 
-    const confirm2faSetup = (email) => {
-        localStorage.setItem(`2fa_setup_${email}`, 'true');
+    const setupMfa = async (email) => {
+        const response = await fetch(`${BASE_URL}/setup-mfa?email=${email}`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'MFA setup failed');
+
+        return data.data;
     };
 
-    const verify2fa = (email, role, otp) => {
-        // Mock OTP verification
-        if (otp === '123456') {
-            const userData = { email, role, name: email.split('@')[0] };
-            setUser(userData);
-            setIsAuthenticated(true);
-            localStorage.setItem('edtech_user', JSON.stringify(userData));
-            confirm2faSetup(email); // Ensure marked as setup
-            return true;
-        }
-        return false;
+    const verify2fa = async (email, otp) => {
+        const response = await fetch(`${BASE_URL}/verify-mfa`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code: otp })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'MFA verification failed');
+
+        const result = data.data;
+        const userData = {
+            email,
+            role: result.role,        // ✅ role from backend
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+            name: email.split('@')[0]
+        };
+        setUser(userData);
+        setIsAuthenticated(true);
+        localStorage.setItem('edtech_user', JSON.stringify(userData));
+        return userData; // ✅ return full userData so Login.jsx can check role
     };
 
     const logout = () => {
@@ -57,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, login, verify2fa, confirm2faSetup, logout, loading }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, login, setupMfa, verify2fa, logout, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );
