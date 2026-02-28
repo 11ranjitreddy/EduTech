@@ -1,24 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Clock, Award, BookOpen, BarChart3 } from 'lucide-react';
+import { Play, Award, BookOpen, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
 import Button from '../components/Button';
 import './MyCourses.css';
 
+const ENROLLMENT_URL = 'http://localhost:8082/api/v1/enrollments';
+
 const MyCourses = () => {
     const { user } = useAuth();
-    const { purchasedCourses } = useCart();
+    const [enrollments, setEnrollments] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Calculate overall stats
-    const totalCourses = purchasedCourses?.length || 0;
-    const completedCourses = purchasedCourses?.filter(c => c.progress === 100).length || 0;
-    const inProgressCourses = purchasedCourses?.filter(c => c.progress > 0 && c.progress < 100).length || 0;
+    // ✅ Fetch real enrollments from DB
+    useEffect(() => {
+        if (user?.email) {
+            fetch(`${ENROLLMENT_URL}/my?studentEmail=${user.email}`)
+                .then(res => res.json())
+                .then(data => setEnrollments(data))
+                .catch(err => console.error('Failed to load enrollments:', err))
+                .finally(() => setLoading(false));
+        }
+    }, [user]);
+
+    // ✅ Real stats from DB data
+    const totalCourses = enrollments.length;
+    const completedCourses = enrollments.filter(e => e.progress === 100).length;
+    const inProgressCourses = enrollments.filter(e => e.progress > 0 && e.progress < 100).length;
+
+    if (loading) {
+        return (
+            <div style={{ textAlign: 'center', padding: '5rem' }}>
+                <p>Loading your courses...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="my-courses-page">
             <div className="container">
-                {/* Header */}
                 <div className="my-courses-header">
                     <div>
                         <h1>My Learning</h1>
@@ -62,32 +82,31 @@ const MyCourses = () => {
                     <div className="enrolled-courses">
                         <h2>Your Courses</h2>
                         <div className="courses-list">
-                            {purchasedCourses.map((course) => (
-                                <div key={course.id} className="enrolled-course-card">
+                            {enrollments.map((enrollment) => (
+                                <div key={enrollment.id} className="enrolled-course-card">
                                     <img
-                                        src={course.image || 'https://via.placeholder.com/200x120'}
-                                        alt={course.title}
+                                        src={enrollment.courseImage || 'https://placehold.co/200x120/png?text=Course'}
+                                        alt={enrollment.courseTitle}
                                         className="course-thumbnail"
                                     />
                                     <div className="course-info">
-                                        <h3>{course.title}</h3>
-                                        <p className="course-instructor">by {course.instructor}</p>
-
+                                        <h3>{enrollment.courseTitle}</h3>
+                                        <p className="course-instructor">by {enrollment.instructor}</p>
                                         <div className="progress-section">
                                             <div className="progress-bar">
                                                 <div
                                                     className="progress-fill"
-                                                    style={{ width: `${course.progress || 0}%` }}
+                                                    style={{ width: `${enrollment.progress || 0}%` }}
                                                 />
                                             </div>
-                                            <span className="progress-text">{course.progress || 0}% complete</span>
+                                            <span className="progress-text">{enrollment.progress || 0}% complete</span>
                                         </div>
                                     </div>
                                     <div className="course-actions">
-                                        <Link to={`/learnv2/${course.id}`}>
+                                        <Link to={`/learn/${enrollment.courseId}`}>
                                             <Button variant="primary">
                                                 <Play size={16} />
-                                                {course.progress > 0 ? 'Continue' : 'Start'}
+                                                {enrollment.progress > 0 ? 'Continue' : 'Start'}
                                             </Button>
                                         </Link>
                                     </div>

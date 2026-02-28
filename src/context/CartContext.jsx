@@ -4,79 +4,105 @@ const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
+const ENROLLMENT_URL = 'http://localhost:8082/api/v1/enrollments';
+
 export const CartProvider = ({ children }) => {
     const [cart, setCart] = useState(() => {
-        // Try to restore from local storage
         const savedCart = localStorage.getItem('edtech_cart');
         return savedCart ? JSON.parse(savedCart) : [];
     });
 
-    const [purchasedCourses, setPurchasedCourses] = useState(() => {
-        const savedPurchases = localStorage.getItem('edtech_purchased');
-        return savedPurchases ? JSON.parse(savedPurchases) : [];
-    });
+    const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
 
+    // ✅ Save cart to localStorage whenever it changes
     useEffect(() => {
         localStorage.setItem('edtech_cart', JSON.stringify(cart));
     }, [cart]);
 
-    useEffect(() => {
-        localStorage.setItem('edtech_purchased', JSON.stringify(purchasedCourses));
-    }, [purchasedCourses]);
+    // ✅ Fetch real enrollments from DB
+    const fetchEnrollments = async (email) => {
+        if (!email) return;
+        try {
+            const response = await fetch(
+                `${ENROLLMENT_URL}/my?studentEmail=${email}`
+            );
+            const data = await response.json();
+            const ids = data.map(e => String(e.courseId));
+            setEnrolledCourseIds(ids);
+        } catch (err) {
+            console.error('Failed to fetch enrollments:', err);
+        }
+    };
 
+    // ✅ Add to cart
     const addToCart = (course) => {
         setCart((prevCart) => {
-            // Check if already in cart
-            if (prevCart.find(item => item.id === course.id)) {
-                return prevCart; // Duplicate check
+            // Already in cart
+            if (prevCart.find(item => String(item.id) === String(course.id))) {
+                return prevCart;
             }
-            // Check if already purchased
-            if (purchasedCourses.find(item => item.id === course.id)) {
-                return prevCart; // Already purchased
+            // Already owned/enrolled
+            if (enrolledCourseIds.includes(String(course.id))) {
+                return prevCart;
             }
             return [...prevCart, course];
         });
     };
 
+    // ✅ Remove from cart
     const removeFromCart = (courseId) => {
-        setCart(prevCart => prevCart.filter(item => item.id !== courseId));
+        setCart(prevCart =>
+            prevCart.filter(item => String(item.id) !== String(courseId))
+        );
     };
 
-    const clearCart = () => {
-        setCart([]);
-    };
+    // ✅ Clear cart
+    const clearCart = () => setCart([]);
 
+    // ✅ Complete purchase — called after payment
     const completePurchase = () => {
-        // Move cart items to purchased courses with initial progress
         const newPurchases = cart.map(course => ({
             ...course,
             progress: 0,
             purchasedAt: new Date().toISOString()
         }));
-        setPurchasedCourses(prev => [...prev, ...newPurchases]);
 
-        // Clear the cart
+        // ✅ Update enrolled IDs immediately so CourseCard shows "Owned"
+        setEnrolledCourseIds(prev => [
+            ...prev,
+            ...cart.map(c => String(c.id))
+        ]);
+
+        // ✅ Clear cart
         setCart([]);
+        localStorage.removeItem('edtech_cart');
 
         return newPurchases;
     };
 
-    const updateCourseProgress = (courseId, progress) => {
-        setPurchasedCourses(prev =>
-            prev.map(course =>
-                course.id === courseId
-                    ? { ...course, progress: Math.min(100, Math.max(0, progress)) }
-                    : course
-            )
-        );
+    // ✅ Update progress
+    const updateCourseProgress = async (enrollmentId, progress) => {
+        try {
+            await fetch(`${ENROLLMENT_URL}/${enrollmentId}/progress`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ progress })
+            });
+        } catch (err) {
+            console.error('Failed to update progress:', err);
+        }
     };
 
+    // ✅ Check if course is purchased
     const isCoursePurchased = (courseId) => {
-        return purchasedCourses.some(course => course.id === courseId);
+        return enrolledCourseIds.includes(String(courseId));
     };
 
     const cartTotal = cart.reduce((total, item) => total + item.price, 0);
     const cartCount = cart.length;
+
+    // ✅ purchasedCourses for backward compatibility with CourseCard
+    const purchasedCourses = enrolledCourseIds.map(id => ({ id }));
 
     return (
         <CartContext.Provider value={{
@@ -89,7 +115,9 @@ export const CartProvider = ({ children }) => {
             purchasedCourses,
             completePurchase,
             updateCourseProgress,
-            isCoursePurchased
+            isCoursePurchased,
+            fetchEnrollments,
+            enrolledCourseIds
         }}>
             {children}
         </CartContext.Provider>

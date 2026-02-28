@@ -3,16 +3,50 @@ import { Link } from 'react-router-dom';
 import Button from '../components/Button';
 import './Auth.css';
 
+const BASE_URL = 'http://localhost:8081/api/v1/auth';
+
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Mock API call simulation
-        setTimeout(() => {
+        setError('');
+        setLoading(true);
+
+        try {
+            const response = await fetch(
+                `${BASE_URL}/forgot-password?email=${email}`,
+                { method: 'POST' }
+            );
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to send reset link');
+
             setIsSubmitted(true);
-        }, 500);
+        } catch (err) {
+            setError(err.message || 'Failed to send reset link. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const response = await fetch(
+                `${BASE_URL}/forgot-password?email=${email}`,
+                { method: 'POST' }
+            );
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+        } catch (err) {
+            setError(err.message || 'Failed to resend');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -24,6 +58,8 @@ const ForgotPassword = () => {
                     <>
                         <h1 className="auth-title">Reset Your Password</h1>
                         <p className="auth-subtitle">Enter your email to receive a reset link</p>
+
+                        {error && <div className="error-message">{error}</div>}
 
                         <form className="auth-form" onSubmit={handleSubmit}>
                             <div className="form-group">
@@ -37,9 +73,9 @@ const ForgotPassword = () => {
                                     required
                                 />
                             </div>
-
-                            <Button variant="primary" type="submit" className="btn-block" style={{ marginTop: '1rem' }}>
-                                Send Reset Link
+                            <Button variant="primary" type="submit" className="btn-block"
+                                style={{ marginTop: '1rem' }} disabled={loading}>
+                                {loading ? 'Sending...' : 'Send Reset Link'}
                             </Button>
                         </form>
 
@@ -50,13 +86,21 @@ const ForgotPassword = () => {
                 ) : (
                     <div style={{ textAlign: 'center', padding: '1rem 0' }}>
                         <div style={{ fontSize: '3.5rem', marginBottom: '1.5rem' }}>📩</div>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.75rem', color: 'var(--text-main)' }}>Check your email</h2>
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.75rem', color: 'var(--text-main)' }}>
+                            Check your email
+                        </h2>
                         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: '1.6' }}>
                             We have sent a password reset link to<br />
                             <strong style={{ color: 'var(--text-main)' }}>{email}</strong>
                         </p>
-                        <Button variant="outline" className="btn-block" onClick={() => setIsSubmitted(false)} style={{ marginBottom: '1rem' }}>
-                            Resend Link
+
+                        {error && <div className="error-message">{error}</div>}
+
+                        <Button variant="outline" className="btn-block"
+                            onClick={handleResend}
+                            disabled={loading}
+                            style={{ marginBottom: '1rem' }}>
+                            {loading ? 'Sending...' : 'Resend Link'}
                         </Button>
                         <div className="auth-footer">
                             <Link to="/login" className="auth-link">Back to Login</Link>

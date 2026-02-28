@@ -1,21 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AdminStudents.css';
 
-const initialStudents = [
-    { id: 1, name: 'Alice Johnson', email: 'alice@example.com', joined: '2026-01-15', courses: 3, totalSpent: 1297, progress: 65 },
-    { id: 2, name: 'Bob Smith', email: 'bob@example.com', joined: '2026-01-20', courses: 1, totalSpent: 499, progress: 10 },
-    { id: 3, name: 'Charlie Davis', email: 'charlie@example.com', joined: '2026-02-01', courses: 5, totalSpent: 2895, progress: 88 },
-    { id: 4, name: 'Diana Prince', email: 'diana@example.com', joined: '2026-02-10', courses: 2, totalSpent: 998, progress: 45 },
-    { id: 5, name: 'Ethan Hunt', email: 'ethan@example.com', joined: '2026-02-15', courses: 1, totalSpent: 699, progress: 0 },
-];
+const AUTH_URL = 'http://localhost:8081/api/v1/auth';
+const ENROLLMENT_URL = 'http://localhost:8082/api/v1/enrollments';
 
 const AdminStudents = () => {
-    const [students] = useState(initialStudents);
+    const [students, setStudents] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchStudents();
+    }, []);
+
+    const fetchStudents = async () => {
+        try {
+            // ✅ Fetch real students from auth service
+            const [studentsRes, statsRes] = await Promise.all([
+                fetch(`${AUTH_URL}/admin/students`),
+                fetch(`${ENROLLMENT_URL}/stats`)
+            ]);
+
+            const studentsData = await studentsRes.json();
+            const statsData = await statsRes.json();
+
+            // ✅ Merge student data with enrollment stats
+            const merged = studentsData.map(student => {
+                const stats = statsData.find(s => s.studentEmail === student.email);
+                return {
+                    ...student,
+                    courses: stats?.totalCourses || 0,
+                    avgProgress: Math.round(stats?.avgProgress || 0)
+                };
+            });
+
+            setStudents(merged);
+        } catch (err) {
+            console.error('Failed to load students:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredStudents = students.filter(s =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.email.toLowerCase().includes(searchTerm.toLowerCase())
+        s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -42,47 +71,57 @@ const AdminStudents = () => {
                     </div>
                 </div>
 
-                <table className="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Email</th>
-                            <th>Joined</th>
-                            <th>Courses</th>
-                            <th>Value</th>
-                            <th>Avg. Progress</th>
-                            <th className="text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredStudents.map(student => (
-                            <tr key={student.id}>
-                                <td>
-                                    <div className="student-profile-cell">
-                                        <div className="student-avatar">{student.name.charAt(0)}</div>
-                                        <span className="student-name">{student.name}</span>
-                                    </div>
-                                </td>
-                                <td>{student.email}</td>
-                                <td>{new Date(student.joined).toLocaleDateString()}</td>
-                                <td>{student.courses}</td>
-                                <td>${student.totalSpent}</td>
-                                <td>
-                                    <div className="progress-cell">
-                                        <div className="progress-track">
-                                            <div className="progress-fill" style={{ width: `${student.progress}%` }}></div>
-                                        </div>
-                                        <span className="progress-text">{student.progress}%</span>
-                                    </div>
-                                </td>
-                                <td className="text-right">
-                                    <button className="icon-btn-view" title="View Profile">👁️</button>
-                                </td>
+                {loading ? (
+                    <p style={{ padding: '2rem', textAlign: 'center' }}>Loading students...</p>
+                ) : (
+                    <table className="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Email</th>
+                                <th>Joined</th>
+                                <th>Courses</th>
+                                <th>Avg. Progress</th>
+                                <th className="text-right">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {filteredStudents.length === 0 && (
+                        </thead>
+                        <tbody>
+                            {filteredStudents.map(student => (
+                                <tr key={student.id}>
+                                    <td>
+                                        <div className="student-profile-cell">
+                                            <div className="student-avatar">
+                                                {student.name?.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span className="student-name">{student.name}</span>
+                                        </div>
+                                    </td>
+                                    <td>{student.email}</td>
+                                    <td>{student.joined
+                                        ? new Date(student.joined).toLocaleDateString()
+                                        : 'N/A'}
+                                    </td>
+                                    <td>{student.courses}</td>
+                                    <td>
+                                        <div className="progress-cell">
+                                            <div className="progress-track">
+                                                <div
+                                                    className="progress-fill"
+                                                    style={{ width: `${student.avgProgress}%` }}
+                                                />
+                                            </div>
+                                            <span className="progress-text">{student.avgProgress}%</span>
+                                        </div>
+                                    </td>
+                                    <td className="text-right">
+                                        <button className="icon-btn-view" title="View Profile">👁️</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+                {!loading && filteredStudents.length === 0 && (
                     <div className="empty-state">No students found.</div>
                 )}
             </div>

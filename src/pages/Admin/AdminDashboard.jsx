@@ -1,28 +1,66 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './AdminDashboard.css';
 
+const COURSE_URL = 'http://localhost:8082/api/v1/courses';
+const AUTH_URL = 'http://localhost:8081/api/v1/auth';
+
 const AdminDashboard = () => {
-    const stats = [
-        { label: 'Total Students', value: '12,450', trend: '+12%', color: '#4F46E5' },
-        { label: 'Active Courses', value: '48', trend: '+5', color: '#10B981' },
-        { label: 'Monthly Revenue', value: '$45,280', trend: '+18.4%', color: '#F59E0B' },
-        { label: 'Avg. Rating', value: '4.8', trend: '+0.1', color: '#EC4899' },
+    const [stats, setStats] = useState({
+        totalCourses: 0,
+        liveCourses: 0,
+        draftCourses: 0,
+        totalStudents: 0
+    });
+    const [topCourses, setTopCourses] = useState([]);
+
+    useEffect(() => {
+        // ✅ Fetch course stats
+        fetch(`${COURSE_URL}/stats`)
+            .then(res => res.json())
+            .then(data => setStats(prev => ({
+                ...prev,
+                totalCourses: data.totalCourses,
+                liveCourses: data.liveCourses,
+                draftCourses: data.draftCourses
+            })))
+            .catch(err => console.error(err));
+
+        // ✅ Fetch REAL student count from auth service
+        fetch(`${AUTH_URL}/admin/students`)
+            .then(res => res.json())
+            .then(data => setStats(prev => ({
+                ...prev,
+                totalStudents: data.length // ✅ real count
+            })))
+            .catch(err => console.error(err));
+
+        // ✅ Fetch top courses
+        fetch(`${COURSE_URL}/top`)
+            .then(res => res.json())
+            .then(data => setTopCourses(data))
+            .catch(err => console.error(err));
+    }, []);
+
+    const statCards = [
+        { label: 'Total Students', value: stats.totalStudents?.toLocaleString(), trend: '', color: '#4F46E5' },
+        { label: 'Active Courses', value: stats.liveCourses, trend: '', color: '#10B981' },
+        { label: 'Total Courses', value: stats.totalCourses, trend: '', color: '#F59E0B' },
+        { label: 'Draft Courses', value: stats.draftCourses, trend: '', color: '#EC4899' },
     ];
 
     return (
         <div className="admin-dashboard">
             <div className="stats-grid">
-                {stats.map((stat, i) => (
+                {statCards.map((stat, i) => (
                     <div key={i} className="stat-card">
                         <div className="stat-header">
                             <p className="stat-label">{stat.label}</p>
-                            <span className="stat-trend" style={{ color: stat.trend.startsWith('+') ? '#10B981' : '#EF4444' }}>
-                                {stat.trend}
-                            </span>
                         </div>
                         <h2 className="stat-value">{stat.value}</h2>
                         <div className="stat-progress-bg">
-                            <div className="stat-progress-bar" style={{ width: '70%', backgroundColor: stat.color }}></div>
+                            <div className="stat-progress-bar"
+                                style={{ width: '70%', backgroundColor: stat.color }}>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -36,8 +74,8 @@ const AdminDashboard = () => {
                             <div key={i} className="activity-item">
                                 <div className="activity-dot"></div>
                                 <div className="activity-content">
-                                    <p><strong>New Student joined:</strong> Sarah Jenkins enrolled in <em>Advanced React Patterns</em></p>
-                                    <small>2 hours ago</small>
+                                    <p><strong>New Student joined:</strong> enrolled in a course</p>
+                                    <small>{i} hour{i > 1 ? 's' : ''} ago</small>
                                 </div>
                             </div>
                         ))}
@@ -47,16 +85,12 @@ const AdminDashboard = () => {
                 <div className="top-courses card">
                     <h3>Top Performing Courses</h3>
                     <div className="course-performance-list">
-                        {[
-                            { name: 'Complete Python Bootcamp', sales: 450, growth: '+25%' },
-                            { name: 'UI/UX Design Masterclass', sales: 380, growth: '+15%' },
-                            { name: 'Machine Learning A-Z', sales: 310, growth: '+30%' },
-                        ].map((c, i) => (
+                        {topCourses.map((c, i) => (
                             <div key={i} className="performance-item">
-                                <p className="course-name">{c.name}</p>
+                                <p className="course-name">{c.title}</p>
                                 <div className="performance-stats">
-                                    <span>{c.sales} sales</span>
-                                    <small className="growth">{c.growth}</small>
+                                    <span>{c.students} students</span>
+                                    <small className="growth">⭐ {c.rating}</small>
                                 </div>
                             </div>
                         ))}

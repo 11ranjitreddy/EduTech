@@ -1,68 +1,155 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Play, CheckCircle, PlayCircle, Circle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import SmartDashboard from '../components/SmartDashboard';
 import TabbedContent from '../components/TabbedContent';
 import FloatingActions from '../components/FloatingActions';
 import './CourseLearningV2.css';
 
+const COURSE_URL = 'http://localhost:8082/api/v1/courses';
+const ENROLLMENT_URL = 'http://localhost:8082/api/v1/enrollments';
+
 const CourseLearningV2 = () => {
     const { id } = useParams();
-    const [currentModuleIndex, setCurrentModuleIndex] = useState(2);
-    const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+    const { user } = useAuth();
+
+    const [course, setCourse] = useState(null);
+    const [sections, setSections] = useState([]);
+    const [enrollment, setEnrollment] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+    const [currentVideo, setCurrentVideo] = useState(null);
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-    // Mock Course Data
-    const course = {
-        id,
-        title: 'Complete Python Bootcamp: Go from Zero to Hero',
-        instructor: {
-            name: 'Jose Portilla',
-            title: 'Data Scientist & Instructor',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'
+    // ✅ Fetch course + curriculum + enrollment
+    useEffect(() => {
+        const fetchAll = async () => {
+            try {
+                const [courseRes, curriculumRes] = await Promise.all([
+                    fetch(`${COURSE_URL}/${id}`),
+                    fetch(`${COURSE_URL}/${id}/curriculum`)
+                ]);
+
+                const courseData = await courseRes.json();
+                const curriculumData = await curriculumRes.json();
+
+                setCourse(courseData);
+                setSections(Array.isArray(curriculumData) ? curriculumData : []);
+
+                // Set first video as default
+                if (curriculumData?.length > 0 && curriculumData[0].videos?.length > 0) {
+                    setCurrentVideo(curriculumData[0].videos[0]);
+                }
+
+                // Fetch enrollment for progress
+                if (user?.email) {
+                    const enrollRes = await fetch(
+                        `${ENROLLMENT_URL}/my?studentEmail=${user.email}`
+                    );
+                    const enrollments = await enrollRes.json();
+                    const found = enrollments.find(e => String(e.courseId) === String(id));
+                    setEnrollment(found || null);
+                }
+            } catch (err) {
+                console.error('Failed to load course:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAll();
+    }, [id, user]);
+
+    // ✅ Extract YouTube embed URL
+    const getYouTubeEmbed = (url) => {
+        const match = url?.match(
+            /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&\n?#]+)/
+        );
+        return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : null;
+    };
+
+    // ✅ Get YouTube thumbnail
+    const getYouTubeThumbnail = (url) => {
+        const match = url?.match(
+            /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&\n?#]+)/
+        );
+        return match
+            ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`
+            : 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800';
+    };
+
+    // ✅ Update progress in DB
+    const updateProgress = async (progress) => {
+        if (!enrollment?.id) return;
+        try {
+            await fetch(`${ENROLLMENT_URL}/${enrollment.id}/progress`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ progress })
+            });
+            setEnrollment(prev => ({ ...prev, progress }));
+        } catch (err) {
+            console.error('Failed to update progress:', err);
         }
     };
 
-    // Mock Modules for Journey Map
-    const modules = [
-        { id: 1, title: 'Introduction', progress: 100 },
-        { id: 2, title: 'Variables', progress: 100 },
-        { id: 3, title: 'Data Types', progress: 45 },
-        { id: 4, title: 'Functions', progress: 0 },
-        { id: 5, title: 'OOP', progress: 0 },
-        { id: 6, title: 'Projects', progress: 0 }
-    ];
+    // ✅ When student clicks a video
+    const handleVideoSelect = (video, sectionIndex) => {
+        setCurrentVideo(video);
+        setCurrentSectionIndex(sectionIndex);
+        setIsVideoPlaying(true);
 
-    // Mock Lessons for current module
-    const lessons = [
-        { id: 1, title: 'Introduction to Data Types', duration: '12:30', type: 'Video', completed: true },
-        { id: 2, title: 'Working with Strings', duration: '18:45', type: 'Video', completed: true },
-        { id: 3, title: 'Numbers and Math', duration: '15:00', type: 'Video', completed: false },
-        { id: 4, title: 'Lists and Tuples', duration: '22:15', type: 'Video', completed: false },
-        { id: 5, title: 'Data Types Quiz', duration: '10 min', type: 'Quiz', completed: false }
-    ];
+        // Calculate progress based on video position
+        const totalVideos = sections.reduce(
+            (acc, s) => acc + (s.videos?.length || 0), 0
+        );
+        let videoPosition = 0;
+        sections.forEach((section, si) => {
+            if (si < sectionIndex) {
+                videoPosition += section.videos?.length || 0;
+            }
+        });
+        const currentSection = sections[sectionIndex];
+        const videoIndex = currentSection?.videos?.findIndex(v => v.id === video.id) || 0;
+        videoPosition += videoIndex + 1;
 
-    // Mock Assignments
-    const assignments = [
-        { id: 1, title: 'String Manipulation Exercise', dueDate: 'Feb 5, 2026', status: 'pending' },
-        { id: 2, title: 'Number Calculator Project', dueDate: 'Feb 10, 2026', status: 'submitted' }
-    ];
+        const newProgress = Math.round((videoPosition / totalVideos) * 100);
+        updateProgress(newProgress);
+    };
 
-    // Mock Discussions
-    const discussions = [
-        { id: 1, title: 'Best practices for string formatting?', author: 'Sarah K.', replies: 12, avatar: 'https://i.pravatar.cc/40?img=5' },
-        { id: 2, title: 'Difference between list and tuple?', author: 'Mike T.', replies: 8, avatar: 'https://i.pravatar.cc/40?img=12' }
-    ];
+    // Total videos and progress
+    const totalVideos = sections.reduce(
+        (acc, s) => acc + (s.videos?.length || 0), 0
+    );
+    const courseProgress = enrollment?.progress || 0;
 
-    // Mock Resources
-    const resources = [
-        { id: 1, title: 'Python Cheat Sheet', type: 'PDF', size: '2.4 MB' },
-        { id: 2, title: 'Code Examples - Module 3', type: 'ZIP', size: '1.1 MB' }
-    ];
+    // Build lessons list for TabbedContent
+    const allLessons = sections.flatMap((section, si) =>
+        (section.videos || []).map((video, vi) => ({
+            id: video.id,
+            title: video.title,
+            duration: video.duration || '--',
+            type: 'Video',
+            completed: false,
+            isFree: video.isFree,
+            sectionIndex: si,
+            video
+        }))
+    );
 
-    // Calculate progress
-    const completedLessons = lessons.filter(l => l.completed).length;
-    const courseProgress = Math.round((completedLessons / lessons.length) * 100);
+    if (loading) return (
+        <div style={{ textAlign: 'center', padding: '5rem', fontSize: '1.2rem' }}>
+            Loading course...
+        </div>
+    );
+
+    if (!course) return (
+        <div style={{ textAlign: 'center', padding: '5rem' }}>
+            Course not found.
+        </div>
+    );
 
     return (
         <div className="course-learning-v2">
@@ -76,113 +163,199 @@ const CourseLearningV2 = () => {
             </header>
 
             <div className="learning-layout">
-                {/* LEFT SIDEBAR - Vertical Journey Map */}
+                {/* LEFT SIDEBAR - Sections Journey Map */}
                 <aside className="journey-sidebar">
                     <div className="journey-header">
                         <h3>Course Roadmap</h3>
                         <span className="progress-badge">{courseProgress}%</span>
                     </div>
-                    <div className="journey-modules">
-                        {modules.map((module, index) => {
-                            const isCompleted = index < currentModuleIndex;
-                            const isCurrent = index === currentModuleIndex;
-                            const isUpcoming = index > currentModuleIndex;
 
-                            return (
-                                <div
-                                    key={module.id}
-                                    className={`journey-module ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''} ${isUpcoming ? 'upcoming' : ''}`}
-                                    onClick={() => setCurrentModuleIndex(index)}
-                                >
-                                    <div className="module-connector">
-                                        <div className="connector-line" />
-                                        <div className="module-node">
-                                            {isCompleted && <CheckCircle size={18} />}
-                                            {isCurrent && <PlayCircle size={18} />}
-                                            {isUpcoming && <Circle size={18} />}
+                    {sections.length === 0 ? (
+                        <div style={{
+                            padding: '2rem 1rem',
+                            textAlign: 'center',
+                            color: '#9CA3AF',
+                            fontSize: '0.85rem'
+                        }}>
+                            No content yet
+                        </div>
+                    ) : (
+                        <div className="journey-modules">
+                            {sections.map((section, index) => {
+                                const isCompleted = index < currentSectionIndex;
+                                const isCurrent = index === currentSectionIndex;
+                                const isUpcoming = index > currentSectionIndex;
+
+                                return (
+                                    <div
+                                        key={section.id}
+                                        className={`journey-module 
+                                            ${isCompleted ? 'completed' : ''} 
+                                            ${isCurrent ? 'current' : ''} 
+                                            ${isUpcoming ? 'upcoming' : ''}`}
+                                        onClick={() => setCurrentSectionIndex(index)}
+                                    >
+                                        <div className="module-connector">
+                                            <div className="connector-line" />
+                                            <div className="module-node">
+                                                {isCompleted && <CheckCircle size={18} />}
+                                                {isCurrent && <PlayCircle size={18} />}
+                                                {isUpcoming && <Circle size={18} />}
+                                            </div>
+                                        </div>
+                                        <div className="module-info">
+                                            <span className="module-number">
+                                                Section {index + 1}
+                                            </span>
+                                            <span className="module-title">
+                                                {section.title}
+                                            </span>
+                                            <span style={{
+                                                fontSize: '0.75rem',
+                                                color: '#9CA3AF'
+                                            }}>
+                                                {section.videos?.length || 0} videos
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="module-info">
-                                        <span className="module-number">Module {index + 1}</span>
-                                        <span className="module-title">{module.title}</span>
-                                        {module.progress > 0 && module.progress < 100 && (
-                                            <div className="module-progress-bar">
-                                                <div className="progress-fill" style={{ width: `${module.progress}%` }} />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </aside>
 
-                {/* CENTER - Main Content */}
+                {/* CENTER - Video Player */}
                 <main className="content-center">
-                    {/* Video Player */}
                     <div className="video-player">
-                        {!isVideoPlaying ? (
-                            <div className="video-placeholder" onClick={() => setIsVideoPlaying(true)}>
+                        {!isVideoPlaying || !currentVideo ? (
+                            // ✅ Thumbnail with play button
+                            <div
+                                className="video-placeholder"
+                                onClick={() => {
+                                    if (currentVideo) setIsVideoPlaying(true);
+                                }}
+                                style={{ cursor: currentVideo ? 'pointer' : 'default' }}
+                            >
                                 <img
-                                    src="https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800"
+                                    src={currentVideo
+                                        ? getYouTubeThumbnail(currentVideo.videoUrl)
+                                        : 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800'
+                                    }
                                     alt="Video thumbnail"
                                 />
                                 <div className="play-overlay">
-                                    <div className="play-btn">
-                                        <Play size={40} fill="white" />
-                                    </div>
+                                    {currentVideo ? (
+                                        <div className="play-btn">
+                                            <Play size={40} fill="white" />
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            background: 'rgba(0,0,0,0.7)',
+                                            color: 'white',
+                                            padding: '1rem 2rem',
+                                            borderRadius: '8px',
+                                            fontSize: '1rem'
+                                        }}>
+                                            No videos available yet
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
-                            <div className="video-active">
-                                <video controls autoPlay>
-                                    <source src="" type="video/mp4" />
-                                </video>
-                                <div className="video-fallback">
-                                    <p>🎥 Video Player Active</p>
-                                    <p>Lesson: {lessons[currentLessonIndex]?.title}</p>
-                                </div>
+                            // ✅ YouTube embed player
+                            <div className="video-active" style={{ position: 'relative', paddingTop: '56.25%' }}>
+                                {getYouTubeEmbed(currentVideo.videoUrl) ? (
+                                    <iframe
+                                        src={getYouTubeEmbed(currentVideo.videoUrl)}
+                                        title={currentVideo.title}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0, left: 0,
+                                            width: '100%', height: '100%',
+                                            border: 'none'
+                                        }}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    />
+                                ) : (
+                                    <div style={{
+                                        position: 'absolute', top: 0, left: 0,
+                                        width: '100%', height: '100%',
+                                        display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: '#1a1a2e', color: 'white'
+                                    }}>
+                                        Invalid video URL
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Current video title */}
+                        {currentVideo && (
+                            <div style={{
+                                padding: '1rem 1.5rem',
+                                background: 'white',
+                                borderTop: '1px solid #E5E7EB'
+                            }}>
+                                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>
+                                    {currentVideo.title}
+                                </h3>
+                                {currentVideo.duration && (
+                                    <p style={{
+                                        margin: '0.25rem 0 0',
+                                        fontSize: '0.85rem',
+                                        color: '#6B7280'
+                                    }}>
+                                        ⏱ {currentVideo.duration}
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    {/* Tabbed Content */}
+                    {/* ✅ Tabbed Content with real lessons */}
                     <TabbedContent
-                        lessons={lessons}
-                        assignments={assignments}
-                        discussions={discussions}
-                        resources={resources}
+                        lessons={allLessons}
+                        assignments={[]}
+                        discussions={[]}
+                        resources={[]}
                         certificateProgress={courseProgress}
-                        currentLessonIndex={currentLessonIndex}
+                        currentLessonIndex={0}
                         onLessonSelect={(index) => {
-                            setCurrentLessonIndex(index);
-                            setIsVideoPlaying(true);
+                            const lesson = allLessons[index];
+                            if (lesson) {
+                                handleVideoSelect(lesson.video, lesson.sectionIndex);
+                            }
                         }}
                     />
                 </main>
 
-                {/* RIGHT SIDEBAR - Smart Dashboard */}
+                {/* RIGHT SIDEBAR */}
                 <aside className="dashboard-sidebar">
                     <SmartDashboard
                         courseProgress={courseProgress}
-                        timeSpent="2h 30m"
-                        streak={5}
-                        xp={1250}
-                        badges={3}
+                        timeSpent="0h 0m"
+                        streak={1}
+                        xp={courseProgress * 10}
+                        badges={courseProgress === 100 ? 1 : 0}
                         lastLesson={{
-                            title: lessons[currentLessonIndex]?.title || 'Numbers and Math',
-                            duration: '8:30'
+                            title: currentVideo?.title || 'Start Learning',
+                            duration: currentVideo?.duration || '--'
                         }}
                         recommendedLesson={{
-                            title: 'Lists and Tuples',
-                            duration: '22 min'
+                            title: allLessons[1]?.title || 'Next Lesson',
+                            duration: allLessons[1]?.duration || '--'
                         }}
-                        instructor={course.instructor}
+                        instructor={{
+                            name: course.instructor,
+                            title: 'Course Instructor',
+                            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'
+                        }}
                     />
                 </aside>
             </div>
 
-            {/* Floating Actions */}
             <FloatingActions />
         </div>
     );

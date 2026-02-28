@@ -1,0 +1,406 @@
+.admin-curriculum {
+    animation: fadeIn 0.5s ease;
+}
+
+.curriculum-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.curriculum-back {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.back-btn {
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background: #F1F5F9;
+    color: var(--text-main);
+}
+
+.curriculum-stats {
+    display: flex;
+    gap: 2rem;
+}
+
+.curr-stat {
+    text-align: center;
+    background: white;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.curr-stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.curr-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Sections */
+.sections-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.section-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: #F8FAFC;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-title-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.section-number {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.video-count {
+    background: #EEF2FF;
+    color: var(--primary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.section-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.btn-add-video {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-add-video:hover {
+    background: #4338CA;
+}
+
+.btn-delete-section {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.btn-delete-section:hover {
+    background: #FEE2E2;
+}
+
+/* Videos */
+.videos-list {
+    padding: 0.5rem 0;
+}
+
+.video-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid #F1F5F9;
+    transition: background 0.15s;
+}
+
+.video-item:hover {
+    background: #F8FAFC;
+}
+
+.video-thumbnail {
+    width: 80px;
+    height: 50px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #E5E7EB;
+    flex-shrink: 0;
+}
+
+.video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #9CA3AF;
+}
+
+.video-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.video-number {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.video-title {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.free-badge {
+    background: #DCFCE7;
+    color: #166534;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.video-duration {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.btn-delete-video {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 4px;
+    opacity: 0.5;
+    transition: all 0.2s;
+}
+
+.btn-delete-video:hover {
+    opacity: 1;
+    background: #FEE2E2;
+}
+
+/* Add Video Form */
+.add-video-form {
+    padding: 1.5rem;
+    background: #F8FAFC;
+    border-top: 2px dashed #E2E8F0;
+}
+
+.add-video-form h4 {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    color: var(--text-main);
+}
+
+.video-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+}
+
+.form-field input[type="text"] {
+    width: 100%;
+    padding: 0.7rem;
+    border: 2px solid #E5E7EB;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.form-field input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.checkbox-field label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-main);
+    margin-top: 1.5rem;
+}
+
+.youtube-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #DCFCE7;
+    border-radius: 8px;
+}
+
+.youtube-preview img {
+    width: 80px;
+    height: 50px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.youtube-preview span {
+    color: #166534;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    background: white;
+    border: 2px solid #E5E7EB;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+    background: #F1F5F9;
+}
+
+.btn-save {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-save:hover {
+    background: #4338CA;
+}
+
+.btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Add Section Form */
+.add-section-form {
+    background: white;
+    border: 2px dashed var(--primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.add-section-form h4 {
+    margin: 0 0 1rem;
+    color: var(--primary);
+}
+
+/* Add Section Button */
+.btn-add-section {
+    width: 100%;
+    padding: 1rem;
+    background: white;
+    border: 2px dashed #CBD5E1;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+.btn-add-section:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #EEF2FF;
+}
+
+/* Empty State */
+.empty-curriculum {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.empty-curriculum h3 {
+    font-size: 1.25rem;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}

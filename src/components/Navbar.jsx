@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // Moved useAuth import
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Button from './Button';
 import { useCart } from '../context/CartContext';
 import './Navbar.css';
 
 const Navbar = () => {
     const { cartCount } = useCart();
-    const { user, isAuthenticated, logout } = useAuth(); // Changed order of destructuring
+    const { user, isAuthenticated, logout } = useAuth();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const navigate = useNavigate();
+
+    // ✅ Handle search
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') handleSearch(e);
+    };
 
     return (
         <nav className="navbar">
@@ -18,15 +32,23 @@ const Navbar = () => {
                     EdTech<span className="dot">.</span>
                 </Link>
 
-                {/* Search Bar */}
+                {/* ✅ Search Bar */}
                 <div className="navbar-search">
                     <input
                         type="text"
                         placeholder="Search courses, topics, instructors..."
                         className="search-input"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={handleKeyDown}
                     />
-                    <button className="search-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <button className="search-btn" onClick={handleSearch}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
                     </button>
                 </div>
 
@@ -41,12 +63,17 @@ const Navbar = () => {
                     >
                         <Link to="/courses" className="nav-link dropdown-trigger">
                             Courses
-                            <svg className={`chevron ${isDropdownOpen ? 'rotate' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            <svg className={`chevron ${isDropdownOpen ? 'rotate' : ''}`}
+                                xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
                         </Link>
 
                         {isDropdownOpen && (
                             <div className="dropdown-menu">
-                                <Link to="/courses?category=all" className="dropdown-item">All Courses</Link>
+                                <Link to="/courses" className="dropdown-item">All Courses</Link>
                                 <Link to="/courses?category=python" className="dropdown-item">Python</Link>
                                 <Link to="/courses?category=java" className="dropdown-item">Java</Link>
                                 <Link to="/courses?category=app-dev" className="dropdown-item">App Development</Link>
@@ -58,29 +85,30 @@ const Navbar = () => {
 
                     <Link to="/contact" className="nav-link">Contact Us</Link>
                     {isAuthenticated && (
-                        <Link to="/my-courses" className="nav-link" style={{ color: 'var(--primary)', fontWeight: '600' }}>My Learning</Link>
+                        <Link to="/my-courses" className="nav-link"
+                            style={{ color: 'var(--primary)', fontWeight: '600' }}>
+                            My Learning
+                        </Link>
                     )}
                 </div>
 
                 {/* Auth Buttons */}
                 <div className="navbar-auth">
                     <Link to="/cart" className="cart-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
                         {cartCount > 0 && (
                             <span style={{
-                                position: 'absolute',
-                                top: '-8px',
-                                right: '-8px',
-                                background: 'var(--primary)',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: '18px',
-                                height: '18px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.7rem',
-                                fontWeight: 'bold'
+                                position: 'absolute', top: '-8px', right: '-8px',
+                                background: 'var(--primary)', color: 'white',
+                                borderRadius: '50%', width: '18px', height: '18px',
+                                display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
                             }}>
                                 {cartCount}
                             </span>
@@ -88,7 +116,9 @@ const Navbar = () => {
                     </Link>
                     {isAuthenticated ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>Hi, {user?.name}</span>
+                            <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
+                                Hi, {user?.name}
+                            </span>
                             <Button variant="outline" onClick={logout}>Logout</Button>
                         </div>
                     ) : (
