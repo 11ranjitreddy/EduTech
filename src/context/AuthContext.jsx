@@ -17,6 +17,9 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
+    // =========================
+    // LOGIN
+    // =========================
     const login = async (email, password) => {
         const response = await fetch(`${BASE_URL}/login`, {
             method: 'POST',
@@ -24,11 +27,17 @@ export const AuthProvider = ({ children }) => {
             body: JSON.stringify({ email, password })
         });
 
+        // ✅ Handle rate limiting (429)
+        if (response.status === 429) {
+            throw new Error('Too many attempts. Please wait 1 minute.');
+        }
+
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Login failed');
 
         const result = data.data;
 
+        // ✅ If MFA required
         if (result.requiresMfa) {
             return {
                 requires2fa: true,
@@ -38,6 +47,7 @@ export const AuthProvider = ({ children }) => {
             };
         }
 
+        // ✅ Normal login (no MFA)
         const userData = {
             email,
             role: result.role,
@@ -45,12 +55,17 @@ export const AuthProvider = ({ children }) => {
             refreshToken: result.refreshToken,
             name: email.split('@')[0]
         };
+
         setUser(userData);
         setIsAuthenticated(true);
         localStorage.setItem('edtech_user', JSON.stringify(userData));
+
         return { role: result.role };
     };
 
+    // =========================
+    // SETUP MFA
+    // =========================
     const setupMfa = async (email) => {
         const response = await fetch(`${BASE_URL}/setup-mfa?email=${email}`, {
             method: 'POST'
@@ -62,6 +77,9 @@ export const AuthProvider = ({ children }) => {
         return data.data;
     };
 
+    // =========================
+    // VERIFY MFA
+    // =========================
     const verify2fa = async (email, otp) => {
         const response = await fetch(`${BASE_URL}/verify-mfa`, {
             method: 'POST',
@@ -73,19 +91,25 @@ export const AuthProvider = ({ children }) => {
         if (!response.ok) throw new Error(data.message || 'MFA verification failed');
 
         const result = data.data;
+
         const userData = {
             email,
-            role: result.role,        // ✅ role from backend
+            role: result.role,   // ✅ role from backend
             accessToken: result.accessToken,
             refreshToken: result.refreshToken,
             name: email.split('@')[0]
         };
+
         setUser(userData);
         setIsAuthenticated(true);
         localStorage.setItem('edtech_user', JSON.stringify(userData));
+
         return userData; // ✅ return full userData so Login.jsx can check role
     };
 
+    // =========================
+    // LOGOUT
+    // =========================
     const logout = () => {
         setUser(null);
         setIsAuthenticated(false);
@@ -93,7 +117,17 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, login, setupMfa, verify2fa, logout, loading }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                isAuthenticated,
+                login,
+                setupMfa,
+                verify2fa,
+                logout,
+                loading
+            }}
+        >
             {!loading && children}
         </AuthContext.Provider>
     );

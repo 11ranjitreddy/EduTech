@@ -46,7 +46,13 @@ const CourseLearningV2 = () => {
                 // Fetch enrollment for progress
                 if (user?.email) {
                     const enrollRes = await fetch(
-                        `${ENROLLMENT_URL}/my?studentEmail=${user.email}`
+                        `${ENROLLMENT_URL}/my?studentEmail=${user.email}`,
+                         {
+        headers: {
+            'Authorization': `Bearer ${user.accessToken}`
+        }
+    }
+                        
                     );
                     const enrollments = await enrollRes.json();
                     const found = enrollments.find(e => String(e.courseId) === String(id));
@@ -84,11 +90,14 @@ const CourseLearningV2 = () => {
     const updateProgress = async (progress) => {
         if (!enrollment?.id) return;
         try {
-            await fetch(`${ENROLLMENT_URL}/${enrollment.id}/progress`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ progress })
-            });
+        await fetch(`${ENROLLMENT_URL}/${enrollment.id}/progress`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.accessToken}`
+            },
+            body: JSON.stringify({ progress })
+        });
             setEnrollment(prev => ({ ...prev, progress }));
         } catch (err) {
             console.error('Failed to update progress:', err);
@@ -313,6 +322,37 @@ const CourseLearningV2 = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* ✅ Certificate Section - Show when 100% complete */}
+                    {courseProgress === 100 && (
+                        <div style={{
+                            margin: '1rem',
+                            padding: '1.5rem',
+                            background: 'linear-gradient(135deg, #10B981, #059669)',
+                            borderRadius: '12px',
+                            textAlign: 'center',
+                            color: 'white'
+                        }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏆</div>
+                            <h3 style={{ margin: '0 0 0.5rem' }}>Course Completed!</h3>
+                            <p style={{ margin: '0 0 1rem', opacity: 0.9 }}>
+                                Congratulations! You've completed this course.
+                            </p>
+                            <Link to={`/certificate/${id}`}>
+                                <button style={{
+                                    padding: '0.6rem 1.5rem',
+                                    background: 'white',
+                                    color: '#10B981',
+                                    border: 'none', 
+                                    borderRadius: '8px',
+                                    cursor: 'pointer', 
+                                    fontWeight: '700'
+                                }}>
+                                    🎓 Get Certificate
+                                </button>
+                            </Link>
+                        </div>
+                    )}
 
                     {/* ✅ Tabbed Content with real lessons */}
                     <TabbedContent

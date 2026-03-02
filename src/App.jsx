@@ -25,12 +25,15 @@ import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
 import MyCourses from './pages/MyCourses';
 import ResetPassword from './pages/ResetPassword';
-
+import Profile from './pages/Profile';
+import Certificate from './pages/Certificate';
+import LiveClasses from './pages/LiveClasses';
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminCourses from './pages/Admin/AdminCourses';
 import AdminStudents from './pages/Admin/AdminStudents';
 import AdminCurriculum from './pages/Admin/AdminCurriculum';
+import AdminRevenue from './pages/Admin/AdminRevenue';
 
 const MainLayout = ({ children }) => {
     const location = useLocation();
@@ -76,7 +79,7 @@ function AppRoutes() {
                                 <Route path="courses" element={<AdminCourses />} />
                                 <Route path="students" element={<AdminStudents />} />
                                 <Route path="courses/:courseId/curriculum" element={<AdminCurriculum />} />
-                                <Route path="revenue" element={<div>Admin Revenue Placeholder</div>} />
+                                <Route path="revenue" element={<AdminRevenue />} />
                             </Routes>
                         </AdminLayout>
                     </ProtectedRoute>
@@ -93,6 +96,8 @@ function AppRoutes() {
                             <Route path="/" element={<Home />} />
                             <Route path="/courses" element={<Courses />} />
                             <Route path="/course/:id" element={<CourseDetail />} />
+                            <Route path="/certificate/:courseId" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
+                            <Route path="/live-classes" element={<LiveClasses />} />
 
                             {/* Learning (Protected) */}
                             <Route path="/learning/:id" element={<ProtectedRoute><CourseLearning /></ProtectedRoute>} />
@@ -103,7 +108,12 @@ function AppRoutes() {
                             <Route path="/cart" element={<Cart />} />
                             <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                             <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
-
+                              
+                               <Route path="/profile" element={
+                               <ProtectedRoute allowedRoles={['STUDENT']}>
+                               <Profile />
+                                       </ProtectedRoute>
+                                       } />
                             {/* Support & Auth */}
                             <Route path="/contact" element={<Contact />} />
                             <Route path="/auth" element={<Auth />} />
@@ -111,6 +121,7 @@ function AppRoutes() {
                             <Route path="/register" element={<Register />} />
                             <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/forgot-password" element={<ForgotPassword />} />
+                            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
                             {/* Demo */}
                             <Route path="/demo-learning" element={<CourseLearning />} />

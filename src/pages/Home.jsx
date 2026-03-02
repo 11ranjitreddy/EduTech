@@ -45,7 +45,7 @@ const Home = () => {
                             <Link to="/courses">
                                 <Button variant="primary" className="hero-btn">Explore Courses</Button>
                             </Link>
-                            <Link to="/courses">
+                            <Link to="/live-classes">
                                 <Button variant="secondary" className="hero-btn">Join Live Classes</Button>
                             </Link>
                         </div>

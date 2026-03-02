@@ -1,17 +1,17 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-    const { user, isAuthenticated } = useAuth();
-    const location = useLocation();
+    const { isAuthenticated, user } = useAuth();
 
+    // ✅ Not logged in
     if (!isAuthenticated) {
-        return <Navigate to="/auth" state={{ from: location }} replace />;
+        return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Redirect to home if user doesn't have the right role
+    // ✅ Role check
+    if (allowedRoles && !allowedRoles.includes(user?.role)) {
         return <Navigate to="/" replace />;
     }
 

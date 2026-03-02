@@ -52,7 +52,15 @@ const Login = () => {
                 navigate(from, { replace: true });
             }
         } catch (err) {
-            setError(err.message || 'Invalid credentials');
+            // ✅ Handle rate limit error (429)
+            if (
+                err.message?.includes('429') ||
+                err.message?.includes('Too many')
+            ) {
+                setError('Too many login attempts. Please wait 1 minute.');
+            } else {
+                setError(err.message || 'Invalid credentials');
+            }
         } finally {
             setLoading(false);
         }
@@ -130,11 +138,13 @@ const Login = () => {
                         </div>
 
                         <div className="form-group">
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                marginBottom: '0.5rem'
-                            }}>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    marginBottom: '0.5rem'
+                                }}
+                            >
                                 <label htmlFor="password">Password</label>
                                 <Link
                                     to="/forgot-password"
@@ -155,11 +165,15 @@ const Login = () => {
                                 <button
                                     type="button"
                                     className="password-toggle"
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={() =>
+                                        setShowPassword(!showPassword)
+                                    }
                                 >
-                                    {showPassword
-                                        ? <EyeOff size={20} />
-                                        : <Eye size={20} />}
+                                    {showPassword ? (
+                                        <EyeOff size={20} />
+                                    ) : (
+                                        <Eye size={20} />
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -179,29 +193,36 @@ const Login = () => {
                 {/* ================= STEP 2 ================= */}
                 {step === 2 && (
                     <div className="auth-form">
-                        <div style={{
-                            textAlign: 'center',
-                            padding: '1.5rem',
-                            background: '#F8FAFC',
-                            borderRadius: '12px',
-                            border: '2px dashed #E2E8F0',
-                            marginBottom: '1.5rem'
-                        }}>
+                        <div
+                            style={{
+                                textAlign: 'center',
+                                padding: '1.5rem',
+                                background: '#F8FAFC',
+                                borderRadius: '12px',
+                                border: '2px dashed #E2E8F0',
+                                marginBottom: '1.5rem'
+                            }}
+                        >
                             {qrCodeImage ? (
                                 <img
                                     src={qrCodeImage}
                                     alt="MFA QR Code"
-                                    style={{ width: '180px', height: '180px' }}
+                                    style={{
+                                        width: '180px',
+                                        height: '180px'
+                                    }}
                                 />
                             ) : (
                                 <p>Loading QR Code...</p>
                             )}
 
-                            <p style={{
-                                fontSize: '0.8rem',
-                                color: 'var(--text-secondary)',
-                                marginTop: '0.5rem'
-                            }}>
+                            <p
+                                style={{
+                                    fontSize: '0.8rem',
+                                    color: 'var(--text-secondary)',
+                                    marginTop: '0.5rem'
+                                }}
+                            >
                                 Scan with <strong>Microsoft Authenticator</strong>
                             </p>
                         </div>
@@ -218,9 +239,14 @@ const Login = () => {
 
                 {/* ================= STEP 3 ================= */}
                 {step === 3 && (
-                    <form className="auth-form" onSubmit={handle2FASubmit}>
+                    <form
+                        className="auth-form"
+                        onSubmit={handle2FASubmit}
+                    >
                         <div className="form-group">
-                            <label htmlFor="otp">Authentication Code</label>
+                            <label htmlFor="otp">
+                                Authentication Code
+                            </label>
                             <input
                                 type="text"
                                 id="otp"
@@ -228,7 +254,9 @@ const Login = () => {
                                 maxLength="6"
                                 value={otp}
                                 onChange={(e) =>
-                                    setOtp(e.target.value.replace(/\D/g, ''))
+                                    setOtp(
+                                        e.target.value.replace(/\D/g, '')
+                                    )
                                 }
                                 style={{
                                     textAlign: 'center',
@@ -238,12 +266,14 @@ const Login = () => {
                                 autoFocus
                             />
 
-                            <p style={{
-                                fontSize: '0.8rem',
-                                color: 'var(--text-secondary)',
-                                marginTop: '0.5rem',
-                                textAlign: 'center'
-                            }}>
+                            <p
+                                style={{
+                                    fontSize: '0.8rem',
+                                    color: 'var(--text-secondary)',
+                                    marginTop: '0.5rem',
+                                    textAlign: 'center'
+                                }}
+                            >
                                 Open <strong>Microsoft Authenticator</strong> to get the code
                             </p>
                         </div>
@@ -255,7 +285,9 @@ const Login = () => {
                             style={{ marginTop: '1.5rem' }}
                             disabled={loading}
                         >
-                            {loading ? 'Verifying...' : 'Verify & Login'}
+                            {loading
+                                ? 'Verifying...'
+                                : 'Verify & Login'}
                         </Button>
 
                         <button

@@ -84,6 +84,14 @@ const Navbar = () => {
                     </div>
 
                     <Link to="/contact" className="nav-link">Contact Us</Link>
+                    <Link to="/contact" className="nav-link">Contact Us</Link>
+
+<Link to="/live-classes" className="nav-link" style={{
+    color: '#DC2626',
+    fontWeight: '600'
+}}>
+    🔴 Live
+</Link>
                     {isAuthenticated && (
                         <Link to="/my-courses" className="nav-link"
                             style={{ color: 'var(--primary)', fontWeight: '600' }}>
@@ -115,17 +123,28 @@ const Navbar = () => {
                         )}
                     </Link>
                     {isAuthenticated ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
-                                Hi, {user?.name}
-                            </span>
-                            <Button variant="outline" onClick={logout}>Logout</Button>
-                        </div>
-                    ) : (
-                        <Link to="/login">
-                            <Button variant="primary">Login / Register</Button>
-                        </Link>
-                    )}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {/* ✅ Only show profile link for students */}
+        {user?.role === 'ADMIN' ? (
+            <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
+                Hi, {user?.name}
+            </span>
+        ) : (
+            <Link to="/profile" style={{
+                color: 'var(--text-main)',
+                fontWeight: '500',
+                textDecoration: 'none'
+            }}>
+                Hi, {user?.name}
+            </Link>
+        )}
+        <Button variant="outline" onClick={logout}>Logout</Button>
+    </div>
+) : (
+    <Link to="/login">
+        <Button variant="primary">Login / Register</Button>
+    </Link>
+)}
                 </div>
             </div>
         </nav>
