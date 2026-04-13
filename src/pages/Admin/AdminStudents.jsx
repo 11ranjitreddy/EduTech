@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './AdminStudents.css';
 
 const AUTH_URL = 'http://localhost:8081/api/v1/auth';
 const ENROLLMENT_URL = 'http://localhost:8082/api/v1/enrollments';
 
 const AdminStudents = () => {
+    const { user } = useAuth();
     const [students, setStudents] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchStudents();
-    }, []);
+        if (user?.accessToken) fetchStudents();
+    }, [user]);
 
     const fetchStudents = async () => {
         try {
-            // ✅ Fetch real students from auth service
+            const token = user?.accessToken;
+            const headers = { 'Authorization': `Bearer ${token}` };
+
             const [studentsRes, statsRes] = await Promise.all([
-                fetch(`${AUTH_URL}/admin/students`),
-                fetch(`${ENROLLMENT_URL}/stats`)
+                fetch(`${AUTH_URL}/admin/students`, { headers }),
+                fetch(`${ENROLLMENT_URL}/stats`, { headers })
             ]);
 
             const studentsData = await studentsRes.json();
             const statsData = await statsRes.json();
 
-            // ✅ Merge student data with enrollment stats
-            const merged = studentsData.map(student => {
-                const stats = statsData.find(s => s.studentEmail === student.email);
+            const studentsList = Array.isArray(studentsData) ? studentsData : [];
+            const statsList = Array.isArray(statsData) ? statsData : [];
+
+            const merged = studentsList.map(student => {
+                const stats = statsList.find(s => s.studentEmail === student.email);
                 return {
                     ...student,
                     courses: stats?.totalCourses || 0,
@@ -105,10 +111,8 @@ const AdminStudents = () => {
                                     <td>
                                         <div className="progress-cell">
                                             <div className="progress-track">
-                                                <div
-                                                    className="progress-fill"
-                                                    style={{ width: `${student.avgProgress}%` }}
-                                                />
+                                                <div className="progress-fill"
+                                                    style={{ width: `${student.avgProgress}%` }} />
                                             </div>
                                             <span className="progress-text">{student.avgProgress}%</span>
                                         </div>

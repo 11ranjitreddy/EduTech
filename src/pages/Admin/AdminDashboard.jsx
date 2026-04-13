@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './AdminDashboard.css';
 
 const COURSE_URL = 'http://localhost:8082/api/v1/courses';
@@ -6,32 +7,32 @@ const AUTH_URL = 'http://localhost:8081/api/v1/auth';
 const LIVECLASS_URL = 'http://localhost:8082/api/v1/liveclasses';
 
 const AdminDashboard = () => {
+    const { user } = useAuth();
     const [stats, setStats] = useState({
-        totalCourses: 0,
-        liveCourses: 0,
-        draftCourses: 0,
-        totalStudents: 0
+        totalCourses: 0, liveCourses: 0,
+        draftCourses: 0, totalStudents: 0
     });
     const [topCourses, setTopCourses] = useState([]);
     const [liveClasses, setLiveClasses] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({
-        title: '',
-        description: '',
-        instructor: '',
-        meetLink: '',
-        courseId: '',
-        scheduledAt: ''
+        title: '', description: '', instructor: '',
+        meetLink: '', courseId: '', scheduledAt: ''
     });
 
     useEffect(() => {
         fetchStats();
         fetchLiveClasses();
-    }, []);
+    }, [user]);
+
+    const getToken = () => user?.accessToken;
 
     const fetchStats = () => {
-        fetch(`${COURSE_URL}/stats`)
+        const token = getToken();
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        fetch(`${COURSE_URL}/stats`, { headers })
             .then(res => res.json())
             .then(data => setStats(prev => ({
                 ...prev,
@@ -39,27 +40,30 @@ const AdminDashboard = () => {
                 liveCourses: data.liveCourses,
                 draftCourses: data.draftCourses
             })))
-            .catch(err => console.error('Error fetching course stats:', err));
+            .catch(err => console.error(err));
 
-        fetch(`${AUTH_URL}/admin/students`)
+        fetch(`${AUTH_URL}/admin/students`, { headers })
             .then(res => res.json())
             .then(data => setStats(prev => ({
                 ...prev,
-                totalStudents: data.length
+                totalStudents: Array.isArray(data) ? data.length : 0
             })))
-            .catch(err => console.error('Error fetching students:', err));
+            .catch(err => console.error(err));
 
-        fetch(`${COURSE_URL}/top`)
+        fetch(`${COURSE_URL}/top`, { headers })
             .then(res => res.json())
-            .then(data => setTopCourses(data))
-            .catch(err => console.error('Error fetching top courses:', err));
+            .then(data => setTopCourses(Array.isArray(data) ? data : []))
+            .catch(err => console.error(err));
     };
 
     const fetchLiveClasses = () => {
-        fetch(`${LIVECLASS_URL}/admin/all`)
+        const token = getToken();
+        fetch(`${LIVECLASS_URL}/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
             .then(res => res.json())
             .then(data => setLiveClasses(Array.isArray(data) ? data : []))
-            .catch(err => console.error('Error fetching live classes:', err));
+            .catch(err => console.error(err));
     };
 
     const handleSchedule = async (e) => {
@@ -67,9 +71,13 @@ const AdminDashboard = () => {
         if (!form.title || !form.meetLink || !form.scheduledAt) return;
         setSaving(true);
         try {
+            const token = getToken();
             await fetch(LIVECLASS_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(form)
             });
             setForm({
@@ -88,7 +96,11 @@ const AdminDashboard = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Delete this live class?')) return;
         try {
-            await fetch(`${LIVECLASS_URL}/${id}`, { method: 'DELETE' });
+            const token = getToken();
+            await fetch(`${LIVECLASS_URL}/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             fetchLiveClasses();
         } catch (err) {
             console.error('Failed to delete:', err);
@@ -97,8 +109,10 @@ const AdminDashboard = () => {
 
     const handleStatusChange = async (id, status) => {
         try {
+            const token = getToken();
             await fetch(`${LIVECLASS_URL}/${id}/status?status=${status}`, {
-                method: 'PATCH'
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             fetchLiveClasses();
         } catch (err) {
@@ -123,20 +137,17 @@ const AdminDashboard = () => {
 
     const inputStyle = {
         width: '100%', padding: '0.7rem',
-        border: '2px solid #E5E7EB',
-        borderRadius: '8px', fontSize: '0.9rem',
-        boxSizing: 'border-box', outline: 'none'
+        border: '2px solid #E5E7EB', borderRadius: '8px',
+        fontSize: '0.9rem', boxSizing: 'border-box', outline: 'none'
     };
 
     const labelStyle = {
         display: 'block', fontSize: '0.85rem',
-        fontWeight: '600', color: '#6B7280',
-        marginBottom: '0.4rem'
+        fontWeight: '600', color: '#6B7280', marginBottom: '0.4rem'
     };
 
     return (
         <div className="admin-dashboard">
-            {/* Stats Grid */}
             <div className="stats-grid">
                 {statCards.map((stat, i) => (
                     <div key={i} className="stat-card">
@@ -146,15 +157,13 @@ const AdminDashboard = () => {
                         <h2 className="stat-value">{stat.value}</h2>
                         <div className="stat-progress-bg">
                             <div className="stat-progress-bar"
-                                style={{ width: '70%', backgroundColor: stat.color }}>
-                            </div>
+                                style={{ width: '70%', backgroundColor: stat.color }} />
                         </div>
                     </div>
                 ))}
             </div>
 
             <div className="dashboard-grid">
-                {/* Recent Activity */}
                 <div className="recent-activity card">
                     <h3>Recent Activity</h3>
                     <div className="activity-list">
@@ -170,7 +179,6 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                {/* Top Courses */}
                 <div className="top-courses card">
                     <h3>Top Performing Courses</h3>
                     <div className="course-performance-list">
@@ -195,256 +203,149 @@ const AdminDashboard = () => {
                 }}>
                     <div>
                         <h3 style={{ margin: 0 }}>🎥 Live Classes</h3>
-                        <p style={{
-                            margin: '0.25rem 0 0',
-                            color: '#6B7280', fontSize: '0.9rem'
-                        }}>
+                        <p style={{ margin: '0.25rem 0 0', color: '#6B7280', fontSize: '0.9rem' }}>
                             Schedule and manage live sessions
                         </p>
                     </div>
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        style={{
-                            padding: '0.6rem 1.25rem',
-                            background: '#4F46E5', color: 'white',
-                            border: 'none', borderRadius: '8px',
-                            cursor: 'pointer', fontWeight: '600'
-                        }}
-                    >
+                    <button onClick={() => setShowForm(!showForm)} style={{
+                        padding: '0.6rem 1.25rem', background: '#4F46E5',
+                        color: 'white', border: 'none', borderRadius: '8px',
+                        cursor: 'pointer', fontWeight: '600'
+                    }}>
                         {showForm ? '✕ Cancel' : '+ Schedule Class'}
                     </button>
                 </div>
 
-                {/* Schedule Form */}
                 {showForm && (
                     <form onSubmit={handleSchedule} style={{
-                        background: '#F8FAFC',
-                        borderRadius: '12px', padding: '1.5rem',
-                        marginBottom: '1.5rem',
+                        background: '#F8FAFC', borderRadius: '12px',
+                        padding: '1.5rem', marginBottom: '1.5rem',
                         border: '2px dashed #4F46E5'
                     }}>
                         <h4 style={{ margin: '0 0 1rem', color: '#4F46E5' }}>
                             Schedule New Live Class
                         </h4>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '1rem'
-                        }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div>
                                 <label style={labelStyle}>Title *</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Python Basics Live Session"
+                                <input type="text" placeholder="e.g. Python Basics Live Session"
                                     value={form.title}
                                     onChange={e => setForm({ ...form, title: e.target.value })}
-                                    style={inputStyle}
-                                    required
-                                />
+                                    style={inputStyle} required />
                             </div>
                             <div>
                                 <label style={labelStyle}>Instructor</label>
-                                <input
-                                    type="text"
-                                    placeholder="Instructor name"
+                                <input type="text" placeholder="Instructor name"
                                     value={form.instructor}
                                     onChange={e => setForm({ ...form, instructor: e.target.value })}
-                                    style={inputStyle}
-                                />
+                                    style={inputStyle} />
                             </div>
                             <div>
                                 <label style={labelStyle}>Google Meet / Zoom Link *</label>
-                                <input
-                                    type="text"
-                                    placeholder="https://meet.google.com/..."
+                                <input type="text" placeholder="https://meet.google.com/..."
                                     value={form.meetLink}
                                     onChange={e => setForm({ ...form, meetLink: e.target.value })}
-                                    style={inputStyle}
-                                    required
-                                />
+                                    style={inputStyle} required />
                             </div>
                             <div>
                                 <label style={labelStyle}>Date & Time *</label>
-                                <input
-                                    type="datetime-local"
-                                    value={form.scheduledAt}
+                                <input type="datetime-local" value={form.scheduledAt}
                                     onChange={e => setForm({ ...form, scheduledAt: e.target.value })}
-                                    style={inputStyle}
-                                    required
-                                />
+                                    style={inputStyle} required />
                             </div>
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <label style={labelStyle}>Description</label>
-                                <textarea
-                                    placeholder="What will be covered in this session..."
+                                <textarea placeholder="What will be covered in this session..."
                                     value={form.description}
                                     onChange={e => setForm({ ...form, description: e.target.value })}
-                                    rows={3}
-                                    style={{ ...inputStyle, resize: 'vertical' }}
-                                />
+                                    rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
                             </div>
                         </div>
-                        <div style={{
-                            display: 'flex', justifyContent: 'flex-end',
-                            gap: '1rem', marginTop: '1rem'
-                        }}>
-                            <button
-                                type="button"
-                                onClick={() => setShowForm(false)}
-                                style={{
-                                    padding: '0.6rem 1.25rem',
-                                    background: 'white',
-                                    border: '2px solid #E5E7EB',
-                                    borderRadius: '8px', cursor: 'pointer',
-                                    fontWeight: '600'
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                style={{
-                                    padding: '0.6rem 1.25rem',
-                                    background: saving ? '#9CA3AF' : '#4F46E5',
-                                    color: 'white', border: 'none',
-                                    borderRadius: '8px', cursor: 'pointer',
-                                    fontWeight: '600'
-                                }}
-                            >
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                            <button type="button" onClick={() => setShowForm(false)} style={{
+                                padding: '0.6rem 1.25rem', background: 'white',
+                                border: '2px solid #E5E7EB', borderRadius: '8px',
+                                cursor: 'pointer', fontWeight: '600'
+                            }}>Cancel</button>
+                            <button type="submit" disabled={saving} style={{
+                                padding: '0.6rem 1.25rem',
+                                background: saving ? '#9CA3AF' : '#4F46E5',
+                                color: 'white', border: 'none', borderRadius: '8px',
+                                cursor: 'pointer', fontWeight: '600'
+                            }}>
                                 {saving ? 'Scheduling...' : '📅 Schedule Class'}
                             </button>
                         </div>
                     </form>
                 )}
 
-                {/* Live Classes List */}
                 {liveClasses.length === 0 ? (
-                    <div style={{
-                        textAlign: 'center', padding: '3rem',
-                        color: '#9CA3AF'
-                    }}>
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#9CA3AF' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📅</div>
                         <p>No live classes scheduled yet</p>
                     </div>
                 ) : (
-                    <div style={{
-                        display: 'flex', flexDirection: 'column', gap: '1rem'
-                    }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {liveClasses.map(cls => (
                             <div key={cls.id} style={{
-                                padding: '1.25rem',
-                                background: '#F8FAFC',
-                                borderRadius: '10px',
-                                border: '1px solid #E5E7EB',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: '1rem'
+                                padding: '1.25rem', background: '#F8FAFC',
+                                borderRadius: '10px', border: '1px solid #E5E7EB',
+                                display: 'flex', justifyContent: 'space-between',
+                                alignItems: 'center', gap: '1rem'
                             }}>
                                 <div style={{ flex: 1 }}>
                                     <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center', gap: '0.75rem',
-                                        marginBottom: '0.4rem'
+                                        display: 'flex', alignItems: 'center',
+                                        gap: '0.75rem', marginBottom: '0.4rem'
                                     }}>
                                         <span style={{ fontSize: '1.2rem' }}>🎥</span>
-                                        <h4 style={{ margin: 0, fontSize: '1rem' }}>
-                                            {cls.title}
-                                        </h4>
+                                        <h4 style={{ margin: 0, fontSize: '1rem' }}>{cls.title}</h4>
                                         <span style={{
-                                            padding: '0.2rem 0.5rem',
-                                            borderRadius: '9999px',
-                                            fontSize: '0.7rem',
-                                            fontWeight: '600',
-                                            background:
-                                                cls.status === 'LIVE' ? '#DCFCE7' :
+                                            padding: '0.2rem 0.5rem', borderRadius: '9999px',
+                                            fontSize: '0.7rem', fontWeight: '600',
+                                            background: cls.status === 'LIVE' ? '#DCFCE7' :
                                                 cls.status === 'COMPLETED' ? '#F1F5F9' : '#EEF2FF',
-                                            color:
-                                                cls.status === 'LIVE' ? '#166534' :
+                                            color: cls.status === 'LIVE' ? '#166534' :
                                                 cls.status === 'COMPLETED' ? '#475569' : '#4F46E5'
                                         }}>
                                             {cls.status === 'LIVE' ? '🔴 LIVE' :
-                                             cls.status === 'COMPLETED' ? '✅ Completed' :
-                                             '📅 Upcoming'}
+                                             cls.status === 'COMPLETED' ? '✅ Completed' : '📅 Upcoming'}
                                         </span>
                                     </div>
                                     {cls.description && (
-                                        <p style={{
-                                            margin: '0 0 0.4rem',
-                                            fontSize: '0.85rem', color: '#6B7280'
-                                        }}>
+                                        <p style={{ margin: '0 0 0.4rem', fontSize: '0.85rem', color: '#6B7280' }}>
                                             {cls.description}
                                         </p>
                                     )}
-                                    <div style={{
-                                        display: 'flex', gap: '1rem',
-                                        fontSize: '0.8rem', color: '#9CA3AF'
-                                    }}>
+                                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#9CA3AF' }}>
                                         <span>📅 {formatDateTime(cls.scheduledAt)}</span>
-                                        {cls.instructor && (
-                                            <span>👤 {cls.instructor}</span>
-                                        )}
+                                        {cls.instructor && <span>👤 {cls.instructor}</span>}
                                     </div>
                                 </div>
-                                <div style={{
-                                    display: 'flex', gap: '0.5rem',
-                                    alignItems: 'center', flexShrink: 0
-                                }}>
-                                    {/* Status buttons */}
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
                                     {cls.status === 'UPCOMING' && (
-                                        <button
-                                            onClick={() => handleStatusChange(cls.id, 'LIVE')}
-                                            style={{
-                                                padding: '0.4rem 0.75rem',
-                                                background: '#DCFCE7', color: '#166534',
-                                                border: 'none', borderRadius: '6px',
-                                                cursor: 'pointer', fontWeight: '600',
-                                                fontSize: '0.8rem'
-                                            }}
-                                        >
-                                            🔴 Go Live
-                                        </button>
+                                        <button onClick={() => handleStatusChange(cls.id, 'LIVE')} style={{
+                                            padding: '0.4rem 0.75rem', background: '#DCFCE7',
+                                            color: '#166534', border: 'none', borderRadius: '6px',
+                                            cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem'
+                                        }}>🔴 Go Live</button>
                                     )}
                                     {cls.status === 'LIVE' && (
-                                        <button
-                                            onClick={() => handleStatusChange(cls.id, 'COMPLETED')}
-                                            style={{
-                                                padding: '0.4rem 0.75rem',
-                                                background: '#F1F5F9', color: '#475569',
-                                                border: 'none', borderRadius: '6px',
-                                                cursor: 'pointer', fontWeight: '600',
-                                                fontSize: '0.8rem'
-                                            }}
-                                        >
-                                            ✅ End Class
-                                        </button>
+                                        <button onClick={() => handleStatusChange(cls.id, 'COMPLETED')} style={{
+                                            padding: '0.4rem 0.75rem', background: '#F1F5F9',
+                                            color: '#475569', border: 'none', borderRadius: '6px',
+                                            cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem'
+                                        }}>✅ End Class</button>
                                     )}
-                                    
-                                    {/* Fixed: Added missing <a> tag */}
-                                    <a
-                                        href={cls.meetLink}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        style={{
-                                            padding: '0.4rem 0.75rem',
-                                            background: '#4F46E5', color: 'white',
-                                            borderRadius: '6px', textDecoration: 'none',
-                                            fontWeight: '600', fontSize: '0.8rem'
-                                        }}
-                                    >
-                                        🔗 Open Link
-                                    </a>
-                                    <button
-                                        onClick={() => handleDelete(cls.id)}
-                                        style={{
-                                            padding: '0.4rem',
-                                            background: 'none', border: 'none',
-                                            cursor: 'pointer', fontSize: '1rem'
-                                        }}
-                                    >
-                                        🗑️
-                                    </button>
+                                    <a href={cls.meetLink} target="_blank" rel="noreferrer" style={{
+                                        padding: '0.4rem 0.75rem', background: '#4F46E5',
+                                        color: 'white', borderRadius: '6px',
+                                        textDecoration: 'none', fontWeight: '600', fontSize: '0.8rem'
+                                    }}>🔗 Open Link</a>
+                                    <button onClick={() => handleDelete(cls.id)} style={{
+                                        padding: '0.4rem', background: 'none',
+                                        border: 'none', cursor: 'pointer', fontSize: '1rem'
+                                    }}>🗑️</button>
                                 </div>
                             </div>
                         ))}

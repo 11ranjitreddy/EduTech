@@ -84,7 +84,7 @@ const Navbar = () => {
                     </div>
 
                     <Link to="/contact" className="nav-link">Contact Us</Link>
-                    <Link to="/contact" className="nav-link">Contact Us</Link>
+                    {/* <Link to="/contact" className="nav-link">Contact Us</Link> */}
 
 <Link to="/live-classes" className="nav-link" style={{
     color: '#DC2626',

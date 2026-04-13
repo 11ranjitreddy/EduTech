@@ -7,7 +7,7 @@ import './Checkout.css';
 const PAYMENT_URL = 'http://localhost:8082/api/v1/payments';
 
 // ✅ SET THIS TO true WHEN CLIENT GIVES RAZORPAY KEYS
-const USE_REAL_PAYMENT = false;
+const USE_REAL_PAYMENT = true;
 
 const Checkout = () => {
     const { cart, cartTotal, completePurchase, fetchEnrollments } = useCart();
@@ -47,18 +47,22 @@ const Checkout = () => {
         if (cart.length === 0) navigate('/cart');
     }, [cart]);
 
-    // ✅ MOCK PAYMENT — used when USE_REAL_PAYMENT = false
+    // ✅ MOCK PAYMENT
     const handleMockPayment = async () => {
         setIsProcessing(true);
         try {
-            // Simulate payment delay
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Enroll student in all courses
+            const token = user?.accessToken;
+
+            // ✅ Enroll with token
             for (const course of cart) {
                 await fetch('http://localhost:8082/api/v1/enrollments', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         studentEmail: user.email,
                         courseId: Number(course.id)
@@ -66,9 +70,8 @@ const Checkout = () => {
                 });
             }
 
-            // ✅ Clear cart + refresh enrollments
             const purchasedItems = completePurchase();
-            await fetchEnrollments(user.email);
+            await fetchEnrollments(user.email, token);
 
             navigate('/order-success', {
                 state: {
@@ -87,7 +90,7 @@ const Checkout = () => {
         }
     };
 
-    // ✅ REAL RAZORPAY PAYMENT — used when USE_REAL_PAYMENT = true
+    // ✅ REAL RAZORPAY PAYMENT
     const handleRealPayment = async () => {
         if (!scriptLoaded) {
             alert('Payment gateway is loading. Please try again.');
@@ -95,10 +98,14 @@ const Checkout = () => {
         }
         setIsProcessing(true);
         try {
-            // Step 1: Create order
+            const token = user?.accessToken;
+
             const orderRes = await fetch(`${PAYMENT_URL}/create-order`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     studentEmail: user.email,
                     amount: cartTotal,
@@ -109,7 +116,6 @@ const Checkout = () => {
             if (!orderRes.ok) throw new Error('Failed to create payment order');
             const orderData = await orderRes.json();
 
-            // Step 2: Open Razorpay popup
             const options = {
                 key: orderData.keyId,
                 amount: Math.round(orderData.amount * 100),
@@ -120,10 +126,12 @@ const Checkout = () => {
 
                 handler: async (response) => {
                     try {
-                        // Step 3: Verify payment
                         const verifyRes = await fetch(`${PAYMENT_URL}/verify`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
                             body: JSON.stringify({
                                 razorpayOrderId: response.razorpay_order_id,
                                 razorpayPaymentId: response.razorpay_payment_id,
@@ -137,7 +145,7 @@ const Checkout = () => {
 
                         if (verifyData.success) {
                             const purchasedItems = completePurchase();
-                            await fetchEnrollments(user.email);
+                            await fetchEnrollments(user.email, token);
                             navigate('/order-success', {
                                 state: {
                                     orderId: response.razorpay_order_id,
@@ -186,7 +194,6 @@ const Checkout = () => {
         }
     };
 
-    // ✅ Main handler — switches between mock and real
     const handlePayment = () => {
         if (USE_REAL_PAYMENT) {
             handleRealPayment();
@@ -203,7 +210,6 @@ const Checkout = () => {
         <div className="checkout-page container">
             <h1 className="page-title">Checkout</h1>
 
-            {/* ✅ Mock payment banner */}
             {!USE_REAL_PAYMENT && (
                 <div style={{
                     background: '#FEF3C7',
@@ -222,7 +228,6 @@ const Checkout = () => {
             )}
 
             <div className="checkout-layout">
-                {/* Left - Billing + Payment Info */}
                 <div className="checkout-form-section">
 
                     {/* Billing Details */}
@@ -255,10 +260,7 @@ const Checkout = () => {
                                     type="email"
                                     value={user?.email || ''}
                                     readOnly
-                                    style={{
-                                        background: '#F9FAFB',
-                                        cursor: 'not-allowed'
-                                    }}
+                                    style={{ background: '#F9FAFB', cursor: 'not-allowed' }}
                                 />
                             </div>
                             <div className="form-group">
@@ -277,34 +279,25 @@ const Checkout = () => {
                     <section className="checkout-card">
                         <h2>Payment Method</h2>
                         <div style={{
-                            padding: '2rem',
-                            textAlign: 'center',
-                            background: '#F8FAFC',
-                            borderRadius: '12px',
+                            padding: '2rem', textAlign: 'center',
+                            background: '#F8FAFC', borderRadius: '12px',
                             border: '2px solid #EEF2FF'
                         }}>
                             {USE_REAL_PAYMENT ? (
                                 <>
                                     <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>💳</div>
-                                    <p style={{
-                                        fontWeight: '600', color: '#4F46E5',
-                                        marginBottom: '0.5rem'
-                                    }}>
+                                    <p style={{ fontWeight: '600', color: '#4F46E5', marginBottom: '0.5rem' }}>
                                         Secured by Razorpay
                                     </p>
                                     <div style={{
                                         display: 'flex', justifyContent: 'center',
-                                        gap: '0.75rem', flexWrap: 'wrap',
-                                        marginTop: '0.75rem'
+                                        gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem'
                                     }}>
                                         {['UPI', 'Cards', 'NetBanking', 'Wallets'].map(m => (
                                             <span key={m} style={{
-                                                background: 'white',
-                                                border: '1px solid #E5E7EB',
-                                                padding: '0.3rem 0.75rem',
-                                                borderRadius: '6px',
-                                                fontSize: '0.8rem',
-                                                fontWeight: '500'
+                                                background: 'white', border: '1px solid #E5E7EB',
+                                                padding: '0.3rem 0.75rem', borderRadius: '6px',
+                                                fontSize: '0.8rem', fontWeight: '500'
                                             }}>
                                                 {m}
                                             </span>
@@ -314,10 +307,7 @@ const Checkout = () => {
                             ) : (
                                 <>
                                     <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🧪</div>
-                                    <p style={{
-                                        fontWeight: '600', color: '#D97706',
-                                        marginBottom: '0.25rem'
-                                    }}>
+                                    <p style={{ fontWeight: '600', color: '#D97706', marginBottom: '0.25rem' }}>
                                         Test Mode Payment
                                     </p>
                                     <p style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>
@@ -331,22 +321,18 @@ const Checkout = () => {
                     {/* Courses in Order */}
                     <section className="checkout-card">
                         <h2>Courses in Order</h2>
-                        <div style={{
-                            display: 'flex', flexDirection: 'column', gap: '1rem'
-                        }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {cart.map(item => (
                                 <div key={item.id} style={{
-                                    display: 'flex', alignItems: 'center',
-                                    gap: '1rem', padding: '0.75rem',
-                                    background: '#F8FAFC', borderRadius: '8px'
+                                    display: 'flex', alignItems: 'center', gap: '1rem',
+                                    padding: '0.75rem', background: '#F8FAFC', borderRadius: '8px'
                                 }}>
                                     <div style={{
-                                        width: '48px', height: '48px',
-                                        background: '#4F46E5', borderRadius: '8px',
-                                        display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', color: 'white',
-                                        fontWeight: '700', fontSize: '1.2rem',
-                                        flexShrink: 0
+                                        width: '48px', height: '48px', background: '#4F46E5',
+                                        borderRadius: '8px', display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        color: 'white', fontWeight: '700',
+                                        fontSize: '1.2rem', flexShrink: 0
                                     }}>
                                         {item.title?.charAt(0)}
                                     </div>
@@ -373,7 +359,6 @@ const Checkout = () => {
                         position: 'sticky', top: '2rem'
                     }}>
                         <h3>Order Summary</h3>
-
                         <div className="order-items">
                             {cart.map(item => (
                                 <div key={item.id} className="order-item">
@@ -408,7 +393,6 @@ const Checkout = () => {
 
                         <div className="summary-divider"></div>
 
-                        {/* ✅ Pay Button */}
                         <button
                             onClick={handlePayment}
                             disabled={isProcessing || cart.length === 0}
@@ -432,15 +416,10 @@ const Checkout = () => {
                                 : `✅ Complete Purchase ₹${cartTotal.toFixed(2)}`}
                         </button>
 
-                        {/* Trust badges */}
-                        <div style={{
-                            textAlign: 'center',
-                            fontSize: '0.8rem', color: '#9CA3AF'
-                        }}>
+                        <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#9CA3AF' }}>
                             🔒 100% Secure • SSL Encrypted
                         </div>
 
-                        {/* What you get */}
                         <div style={{
                             marginTop: '1.5rem', padding: '1rem',
                             background: '#F0FDF4', borderRadius: '8px',

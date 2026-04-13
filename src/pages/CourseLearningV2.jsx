@@ -356,19 +356,20 @@ const CourseLearningV2 = () => {
 
                     {/* ✅ Tabbed Content with real lessons */}
                     <TabbedContent
-                        lessons={allLessons}
-                        assignments={[]}
-                        discussions={[]}
-                        resources={[]}
-                        certificateProgress={courseProgress}
-                        currentLessonIndex={0}
-                        onLessonSelect={(index) => {
-                            const lesson = allLessons[index];
-                            if (lesson) {
-                                handleVideoSelect(lesson.video, lesson.sectionIndex);
-                            }
-                        }}
-                    />
+    lessons={allLessons}
+    assignments={[]}
+    discussions={[]}
+    resources={[]}
+    certificateProgress={courseProgress}
+    currentLessonIndex={0}
+    courseId={id}
+    onLessonSelect={(index) => {
+        const lesson = allLessons[index];
+        if (lesson) {
+            handleVideoSelect(lesson.video, lesson.sectionIndex);
+        }
+    }}
+/>
                 </main>
 
                 {/* RIGHT SIDEBAR */}

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './AdminRevenue.css';
 
 const PAYMENT_URL = 'http://localhost:8082/api/v1/payments';
 const COURSE_URL = 'http://localhost:8082/api/v1/courses';
 
 const AdminRevenue = () => {
+    const { user } = useAuth();
     const [payments, setPayments] = useState([]);
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -12,14 +14,17 @@ const AdminRevenue = () => {
     const [filterStatus, setFilterStatus] = useState('ALL');
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (user?.accessToken) fetchData();
+    }, [user]);
 
     const fetchData = async () => {
         try {
+            const token = user?.accessToken;
+            const headers = { 'Authorization': `Bearer ${token}` };
+
             const [paymentsRes, coursesRes] = await Promise.all([
-                fetch(`${PAYMENT_URL}/admin/all`),
-                fetch(`${COURSE_URL}/admin/all`)
+                fetch(`${PAYMENT_URL}/admin/all`, { headers }),
+                fetch(`${COURSE_URL}/admin/all`, { headers })
             ]);
             const paymentsData = await paymentsRes.json();
             const coursesData = await coursesRes.json();
