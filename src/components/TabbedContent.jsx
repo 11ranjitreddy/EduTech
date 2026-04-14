@@ -34,12 +34,23 @@ const TabbedContent = ({
             fetchAssessment();
         }
     }, [activeTab, courseId]);
+    useEffect(() => {
+    if (courseId) {
+        fetchAssessment();
+    }
+}, [courseId]);
 
     const fetchAssessment = async () => {
         setAssessmentLoading(true);
         try {
             const res = await fetch(
-                `${ASSESSMENT_URL}/course/${courseId}`
+                `${ASSESSMENT_URL}/course/${courseId}`,
+                 {
+                // ✅ Add token here
+                headers: {
+                    'Authorization': `Bearer ${user?.accessToken}`
+                }
+            }
             );
             if (res.ok) {
                 const data = await res.json();
@@ -169,394 +180,378 @@ const TabbedContent = ({
                     </div>
                 )}
 
-                {/* ── Assignments Tab ── */}
-                {activeTab === 'assignments' && (
-                    <div className="assignments-list">
-                        {assessmentLoading ? (
-                            <div style={{ textAlign: 'center', padding: '3rem', color: '#6B7280' }}>
-                                Loading assessment...
-                            </div>
+               {/* ── Assignments Tab ── */}
+{activeTab === 'assignments' && (
+    <div style={{ padding: '1rem' }}>
+        {assessmentLoading ? (
+            <div style={{
+                textAlign: 'center',
+                padding: '2rem',
+                color: '#6B7280',
+                fontSize: '0.9rem'
+            }}>
+                Loading...
+            </div>
 
-                        ) : !assessment ? (
-                            // No assessment yet
-                            <div className="empty-state">
-                                <FileText size={40} />
-                                <p>No assignments yet</p>
-                            </div>
+        ) : !assessment ? (
+            <div className="empty-state">
+                <FileText size={32} />
+                <p>No assignments yet</p>
+            </div>
 
-                        ) : submitted && result ? (
-                            // ── Result Screen ──
-                            <div style={{ padding: '1.5rem' }}>
-                                <div style={{
-                                    textAlign: 'center',
-                                    padding: '2rem',
-                                    background: result.passed ? '#F0FDF4' : '#FEF2F2',
-                                    borderRadius: '16px',
-                                    border: `2px solid ${result.passed ? '#86EFAC' : '#FECACA'}`,
-                                    marginBottom: '1.5rem'
+        ) : submitted && result ? (
+            // ── Result Screen (Compact) ──
+            <div>
+                {/* Score Card */}
+                <div style={{
+                    background: result.passed
+                        ? 'linear-gradient(135deg, #10B981, #059669)'
+                        : 'linear-gradient(135deg, #EF4444, #DC2626)',
+                    borderRadius: '12px',
+                    padding: '1.25rem',
+                    textAlign: 'center',
+                    color: 'white',
+                    marginBottom: '1rem'
+                }}>
+                    <div style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
+                        {result.passed ? '🎉' : '😔'}
+                    </div>
+                    <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>
+                        {result.passed ? 'You Passed!' : 'Try Again!'}
+                    </h3>
+                    <div style={{
+                        fontSize: '2rem',
+                        fontWeight: '800',
+                        lineHeight: 1
+                    }}>
+                        {result.percentage}%
+                    </div>
+                    <div style={{
+                        fontSize: '0.8rem',
+                        opacity: 0.9,
+                        marginTop: '0.25rem'
+                    }}>
+                        {result.score}/{result.total} correct
+                        • Pass: {result.passingScore}%
+                    </div>
+                </div>
+
+                {/* Review */}
+                <div style={{ marginBottom: '1rem' }}>
+                    <p style={{
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        color: '#374151',
+                        marginBottom: '0.5rem'
+                    }}>
+                        Review Answers:
+                    </p>
+                    {assessment.questions.map((q, index) => {
+                        const qResult = result.results?.find(
+                            r => r.questionId === q.id
+                        );
+                        const isCorrect = qResult?.correct;
+                        return (
+                            <div key={q.id} style={{
+                                padding: '0.75rem',
+                                background: isCorrect ? '#F0FDF4' : '#FEF2F2',
+                                borderRadius: '8px',
+                                border: `1px solid ${isCorrect ? '#86EFAC' : '#FECACA'}`,
+                                marginBottom: '0.5rem',
+                                fontSize: '0.82rem'
+                            }}>
+                                <p style={{
+                                    margin: '0 0 0.3rem',
+                                    fontWeight: '600',
+                                    color: '#1F2937'
                                 }}>
-                                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>
-                                        {result.passed ? '🎉' : '😔'}
-                                    </div>
-                                    <h2 style={{
-                                        color: result.passed ? '#166534' : '#DC2626',
-                                        margin: '0 0 0.5rem'
+                                    {index + 1}. {q.questionText}
+                                    {' '}{isCorrect ? '✅' : '❌'}
+                                </p>
+                                <p style={{ margin: '0.15rem 0', color: '#6B7280' }}>
+                                    Your answer:
+                                    <strong style={{
+                                        color: isCorrect ? '#166534' : '#DC2626',
+                                        marginLeft: '0.25rem'
                                     }}>
-                                        {result.passed ? 'Congratulations! You Passed!' : 'Better Luck Next Time!'}
-                                    </h2>
-                                    <p style={{ color: '#6B7280', margin: '0 0 1rem' }}>
-                                        {assessment.title}
+                                        {qResult?.studentAnswer})
+                                        {' '}{q[`option${qResult?.studentAnswer}`]}
+                                    </strong>
+                                </p>
+                                {!isCorrect && (
+                                    <p style={{ margin: '0.15rem 0', color: '#166534' }}>
+                                        Correct:
+                                        <strong style={{ marginLeft: '0.25rem' }}>
+                                            {q.correctAnswer})
+                                            {' '}{q[`option${q.correctAnswer}`]}
+                                        </strong>
                                     </p>
-
-                                    {/* Score Circle */}
-                                    <div style={{
-                                        width: '120px', height: '120px',
-                                        borderRadius: '50%',
-                                        background: result.passed
-                                            ? 'linear-gradient(135deg, #10B981, #059669)'
-                                            : 'linear-gradient(135deg, #EF4444, #DC2626)',
-                                        display: 'flex', flexDirection: 'column',
-                                        alignItems: 'center', justifyContent: 'center',
-                                        margin: '0 auto 1rem',
-                                        color: 'white'
-                                    }}>
-                                        <span style={{ fontSize: '2rem', fontWeight: '700' }}>
-                                            {result.percentage}%
-                                        </span>
-                                        <span style={{ fontSize: '0.75rem' }}>Score</span>
-                                    </div>
-
-                                    <p style={{ color: '#374151', fontWeight: '600' }}>
-                                        {result.score} / {result.total} correct
-                                        &nbsp;•&nbsp; Passing: {result.passingScore}%
-                                    </p>
-                                </div>
-
-                                {/* Question Review */}
-                                <h3 style={{ marginBottom: '1rem', color: '#374151' }}>
-                                    Review Answers
-                                </h3>
-                                {assessment.questions.map((q, index) => {
-                                    const qResult = result.results?.find(
-                                        r => r.questionId === q.id
-                                    );
-                                    const isCorrect = qResult?.correct;
-                                    return (
-                                        <div key={q.id} style={{
-                                            padding: '1rem',
-                                            background: isCorrect ? '#F0FDF4' : '#FEF2F2',
-                                            borderRadius: '10px',
-                                            border: `1px solid ${isCorrect ? '#86EFAC' : '#FECACA'}`,
-                                            marginBottom: '0.75rem'
-                                        }}>
-                                            <p style={{
-                                                fontWeight: '600',
-                                                margin: '0 0 0.5rem',
-                                                color: '#1F2937'
-                                            }}>
-                                                {index + 1}. {q.questionText}
-                                                <span style={{
-                                                    marginLeft: '0.5rem',
-                                                    fontSize: '1rem'
-                                                }}>
-                                                    {isCorrect ? '✅' : '❌'}
-                                                </span>
-                                            </p>
-                                            <p style={{
-                                                margin: '0.25rem 0',
-                                                fontSize: '0.85rem',
-                                                color: '#6B7280'
-                                            }}>
-                                                Your answer:
-                                                <strong style={{
-                                                    color: isCorrect ? '#166534' : '#DC2626',
-                                                    marginLeft: '0.25rem'
-                                                }}>
-                                                    {qResult?.studentAnswer}) {q[`option${qResult?.studentAnswer}`]}
-                                                </strong>
-                                            </p>
-                                            {!isCorrect && (
-                                                <p style={{
-                                                    margin: '0.25rem 0',
-                                                    fontSize: '0.85rem',
-                                                    color: '#166534'
-                                                }}>
-                                                    Correct answer:
-                                                    <strong style={{ marginLeft: '0.25rem' }}>
-                                                        {q.correctAnswer}) {q[`option${q.correctAnswer}`]}
-                                                    </strong>
-                                                </p>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-
-                                {/* Action Buttons */}
-                                <div style={{
-                                    display: 'flex', gap: '1rem',
-                                    marginTop: '1.5rem'
-                                }}>
-                                    {!result.passed && (
-                                        <button
-                                            onClick={handleRetry}
-                                            style={{
-                                                flex: 1, padding: '0.85rem',
-                                                background: '#4F46E5', color: 'white',
-                                                border: 'none', borderRadius: '10px',
-                                                cursor: 'pointer', fontWeight: '700',
-                                                fontSize: '1rem'
-                                            }}
-                                        >
-                                            🔄 Try Again
-                                        </button>
-                                    )}
-                                    {result.passed && certificateProgress >= 100 && (
-                                        <button
-                                            onClick={() => setActiveTab('certificate')}
-                                            style={{
-                                                flex: 1, padding: '0.85rem',
-                                                background: 'linear-gradient(135deg, #10B981, #059669)',
-                                                color: 'white', border: 'none',
-                                                borderRadius: '10px',
-                                                cursor: 'pointer', fontWeight: '700',
-                                                fontSize: '1rem'
-                                            }}
-                                        >
-                                            🎓 Get Certificate
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                        ) : !quizStarted ? (
-                            // ── Quiz Start Screen ──
-                            <div style={{ padding: '1.5rem' }}>
-                                <div style={{
-                                    background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
-                                    borderRadius: '16px', padding: '2rem',
-                                    textAlign: 'center', color: 'white',
-                                    marginBottom: '1.5rem'
-                                }}>
-                                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>
-                                        📝
-                                    </div>
-                                    <h2 style={{ margin: '0 0 0.5rem' }}>
-                                        {assessment.title}
-                                    </h2>
-                                    <p style={{ opacity: 0.85, margin: 0 }}>
-                                        Test your knowledge!
-                                    </p>
-                                </div>
-
-                                {/* Quiz Info */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr',
-                                    gap: '1rem', marginBottom: '1.5rem'
-                                }}>
-                                    {[
-                                        { icon: '❓', label: 'Questions', value: assessment.questions?.length },
-                                        { icon: '🎯', label: 'Passing Score', value: `${assessment.passingScore}%` },
-                                        { icon: '🔄', label: 'Attempts', value: 'Unlimited' },
-                                        { icon: '⏱️', label: 'Time Limit', value: 'No limit' },
-                                    ].map((item, i) => (
-                                        <div key={i} style={{
-                                            padding: '1rem',
-                                            background: '#F8FAFC',
-                                            borderRadius: '10px',
-                                            textAlign: 'center',
-                                            border: '1px solid #E5E7EB'
-                                        }}>
-                                            <div style={{ fontSize: '1.5rem' }}>
-                                                {item.icon}
-                                            </div>
-                                            <div style={{
-                                                fontWeight: '700',
-                                                fontSize: '1.2rem',
-                                                color: '#1F2937'
-                                            }}>
-                                                {item.value}
-                                            </div>
-                                            <div style={{
-                                                fontSize: '0.8rem',
-                                                color: '#6B7280'
-                                            }}>
-                                                {item.label}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Previous attempt */}
-                                {previousAttempt && (
-                                    <div style={{
-                                        padding: '1rem',
-                                        background: previousAttempt.passed
-                                            ? '#F0FDF4' : '#FEF3C7',
-                                        borderRadius: '10px',
-                                        border: `1px solid ${previousAttempt.passed ? '#86EFAC' : '#FDE68A'}`,
-                                        marginBottom: '1.5rem',
-                                        textAlign: 'center'
-                                    }}>
-                                        <p style={{
-                                            margin: 0,
-                                            color: previousAttempt.passed ? '#166534' : '#92400E',
-                                            fontWeight: '600'
-                                        }}>
-                                            {previousAttempt.passed ? '✅' : '⚠️'} Previous attempt:
-                                            {' '}{Math.round((previousAttempt.score / previousAttempt.totalMarks) * 100)}%
-                                            {previousAttempt.passed ? ' (Passed)' : ' (Failed)'}
-                                        </p>
-                                    </div>
                                 )}
-
-                                <button
-                                    onClick={() => setQuizStarted(true)}
-                                    style={{
-                                        width: '100%', padding: '1rem',
-                                        background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
-                                        color: 'white', border: 'none',
-                                        borderRadius: '12px', cursor: 'pointer',
-                                        fontWeight: '700', fontSize: '1.1rem',
-                                        boxShadow: '0 4px 15px rgba(79,70,229,0.3)'
-                                    }}
-                                >
-                                    {previousAttempt ? '🔄 Retake Assessment' : '🚀 Start Assessment'}
-                                </button>
                             </div>
+                        );
+                    })}
+                </div>
 
-                        ) : (
-                            // ── Quiz Questions Screen ──
-                            <div style={{ padding: '1.5rem' }}>
-                                {/* Progress bar */}
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        marginBottom: '0.5rem',
-                                        fontSize: '0.85rem',
-                                        color: '#6B7280'
-                                    }}>
-                                        <span>
-                                            {Object.keys(answers).length} of {assessment.questions?.length} answered
-                                        </span>
-                                        <span>
-                                            {Math.round((Object.keys(answers).length /
-                                                assessment.questions?.length) * 100)}%
-                                        </span>
-                                    </div>
-                                    <div style={{
-                                        height: '6px', background: '#E5E7EB',
-                                        borderRadius: '99px', overflow: 'hidden'
-                                    }}>
-                                        <div style={{
-                                            height: '100%',
-                                            width: `${(Object.keys(answers).length /
-                                                assessment.questions?.length) * 100}%`,
-                                            background: 'linear-gradient(90deg, #4F46E5, #7C3AED)',
-                                            transition: 'width 0.3s ease',
-                                            borderRadius: '99px'
-                                        }} />
-                                    </div>
-                                </div>
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    {!result.passed && (
+                        <button onClick={handleRetry} style={{
+                            flex: 1, padding: '0.7rem',
+                            background: '#4F46E5', color: 'white',
+                            border: 'none', borderRadius: '8px',
+                            cursor: 'pointer', fontWeight: '600',
+                            fontSize: '0.875rem'
+                        }}>
+                            🔄 Try Again
+                        </button>
+                    )}
+                    {result.passed && (
+                        <button
+                            onClick={() => setActiveTab('certificate')}
+                            style={{
+                                flex: 1, padding: '0.7rem',
+                                background: '#10B981', color: 'white',
+                                border: 'none', borderRadius: '8px',
+                                cursor: 'pointer', fontWeight: '600',
+                                fontSize: '0.875rem'
+                            }}
+                        >
+                            🎓 Get Certificate
+                        </button>
+                    )}
+                </div>
+            </div>
 
-                                {/* Questions */}
-                                {assessment.questions?.map((q, index) => (
-                                    <div key={q.id} style={{
-                                        marginBottom: '1.5rem',
-                                        padding: '1.25rem',
-                                        background: 'white',
-                                        borderRadius: '12px',
-                                        border: answers[q.id]
-                                            ? '2px solid #4F46E5'
-                                            : '2px solid #E5E7EB',
-                                        transition: 'border 0.2s'
-                                    }}>
-                                        <p style={{
-                                            fontWeight: '600',
-                                            color: '#1F2937',
-                                            margin: '0 0 1rem',
-                                            fontSize: '0.95rem'
-                                        }}>
-                                            {index + 1}. {q.questionText}
-                                        </p>
-                                        <div style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '0.5rem'
-                                        }}>
-                                            {['A', 'B', 'C', 'D'].map(opt => {
-                                                const optText = q[`option${opt}`];
-                                                if (!optText) return null;
-                                                const isSelected = answers[q.id] === opt;
-                                                return (
-                                                    <button
-                                                        key={opt}
-                                                        onClick={() => handleAnswer(q.id, opt)}
-                                                        style={{
-                                                            padding: '0.75rem 1rem',
-                                                            textAlign: 'left',
-                                                            border: isSelected
-                                                                ? '2px solid #4F46E5'
-                                                                : '2px solid #E5E7EB',
-                                                            borderRadius: '8px',
-                                                            background: isSelected
-                                                                ? '#EEF2FF' : 'white',
-                                                            cursor: 'pointer',
-                                                            fontSize: '0.9rem',
-                                                            color: isSelected ? '#4F46E5' : '#374151',
-                                                            fontWeight: isSelected ? '600' : '400',
-                                                            transition: 'all 0.15s',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '0.75rem'
-                                                        }}
-                                                    >
-                                                        <span style={{
-                                                            width: '28px', height: '28px',
-                                                            borderRadius: '50%',
-                                                            background: isSelected
-                                                                ? '#4F46E5' : '#F3F4F6',
-                                                            color: isSelected ? 'white' : '#6B7280',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            fontWeight: '700',
-                                                            fontSize: '0.85rem',
-                                                            flexShrink: 0
-                                                        }}>
-                                                            {opt}
-                                                        </span>
-                                                        {optText}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))}
+        ) : !quizStarted ? (
+            // ── Start Screen (Compact) ──
+            <div>
+                {/* Header */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+                    borderRadius: '12px',
+                    padding: '1.25rem',
+                    color: 'white',
+                    marginBottom: '1rem'
+                }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
+                        📝
+                    </div>
+                    <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>
+                        {assessment.title}
+                    </h3>
+                    <p style={{ margin: 0, opacity: 0.85, fontSize: '0.8rem' }}>
+                        Test your knowledge!
+                    </p>
+                </div>
 
-                                {/* Submit Button */}
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={submitting}
-                                    style={{
-                                        width: '100%', padding: '1rem',
-                                        background: submitting ? '#9CA3AF'
-                                            : 'linear-gradient(135deg, #10B981, #059669)',
-                                        color: 'white', border: 'none',
-                                        borderRadius: '12px',
-                                        cursor: submitting ? 'not-allowed' : 'pointer',
-                                        fontWeight: '700', fontSize: '1.1rem',
-                                        boxShadow: '0 4px 15px rgba(16,185,129,0.3)'
-                                    }}
-                                >
-                                    {submitting ? '⏳ Submitting...' : '✅ Submit Assessment'}
-                                </button>
+                {/* Info Grid */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.5rem',
+                    marginBottom: '1rem'
+                }}>
+                    {[
+                        { icon: '❓', label: 'Questions', value: assessment.questions?.length },
+                        { icon: '🎯', label: 'Pass Score', value: `${assessment.passingScore}%` },
+                        { icon: '🔄', label: 'Attempts', value: 'Unlimited' },
+                        { icon: '⏱️', label: 'Time', value: 'No limit' },
+                    ].map((item, i) => (
+                        <div key={i} style={{
+                            padding: '0.6rem',
+                            background: '#F8FAFC',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                            border: '1px solid #E5E7EB'
+                        }}>
+                            <div style={{ fontSize: '1.1rem' }}>{item.icon}</div>
+                            <div style={{
+                                fontWeight: '700',
+                                fontSize: '1rem',
+                                color: '#1F2937'
+                            }}>
+                                {item.value}
                             </div>
-                        )}
+                            <div style={{
+                                fontSize: '0.72rem',
+                                color: '#6B7280'
+                            }}>
+                                {item.label}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Previous attempt */}
+                {previousAttempt && (
+                    <div style={{
+                        padding: '0.6rem 0.75rem',
+                        background: previousAttempt.passed ? '#F0FDF4' : '#FEF3C7',
+                        borderRadius: '8px',
+                        border: `1px solid ${previousAttempt.passed ? '#86EFAC' : '#FDE68A'}`,
+                        marginBottom: '1rem',
+                        fontSize: '0.82rem',
+                        textAlign: 'center',
+                        color: previousAttempt.passed ? '#166534' : '#92400E',
+                        fontWeight: '600'
+                    }}>
+                        {previousAttempt.passed ? '✅' : '⚠️'} Last attempt:
+                        {' '}{Math.round(
+                            (previousAttempt.score / previousAttempt.totalMarks) * 100
+                        )}%
+                        {previousAttempt.passed ? ' (Passed)' : ' (Failed)'}
                     </div>
                 )}
 
+                <button
+                    onClick={() => setQuizStarted(true)}
+                    style={{
+                        width: '100%', padding: '0.85rem',
+                        background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+                        color: 'white', border: 'none',
+                        borderRadius: '10px', cursor: 'pointer',
+                        fontWeight: '700', fontSize: '0.95rem',
+                        boxShadow: '0 4px 12px rgba(79,70,229,0.3)'
+                    }}
+                >
+                    {previousAttempt ? '🔄 Retake Assessment' : '🚀 Start Assessment'}
+                </button>
+            </div>
+
+        ) : (
+            // ── Questions Screen (Compact) ──
+            <div>
+                {/* Progress bar */}
+                <div style={{ marginBottom: '1rem' }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.78rem',
+                        color: '#6B7280',
+                        marginBottom: '0.3rem'
+                    }}>
+                        <span>
+                            {Object.keys(answers).length}/{assessment.questions?.length} answered
+                        </span>
+                        <span>
+                            {Math.round(
+                                (Object.keys(answers).length /
+                                assessment.questions?.length) * 100
+                            )}%
+                        </span>
+                    </div>
+                    <div style={{
+                        height: '4px', background: '#E5E7EB',
+                        borderRadius: '99px', overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            height: '100%',
+                            width: `${(Object.keys(answers).length /
+                                assessment.questions?.length) * 100}%`,
+                            background: 'linear-gradient(90deg, #4F46E5, #7C3AED)',
+                            transition: 'width 0.3s',
+                            borderRadius: '99px'
+                        }} />
+                    </div>
+                </div>
+
+                {/* Questions */}
+                {assessment.questions?.map((q, index) => (
+                    <div key={q.id} style={{
+                        marginBottom: '1rem',
+                        padding: '1rem',
+                        background: 'white',
+                        borderRadius: '10px',
+                        border: answers[q.id]
+                            ? '2px solid #4F46E5'
+                            : '2px solid #E5E7EB',
+                        transition: 'border 0.15s'
+                    }}>
+                        <p style={{
+                            fontWeight: '600',
+                            color: '#1F2937',
+                            margin: '0 0 0.75rem',
+                            fontSize: '0.875rem',
+                            lineHeight: '1.4'
+                        }}>
+                            {index + 1}. {q.questionText}
+                        </p>
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.4rem'
+                        }}>
+                            {['A', 'B', 'C', 'D'].map(opt => {
+                                const optText = q[`option${opt}`];
+                                if (!optText) return null;
+                                const isSelected = answers[q.id] === opt;
+                                return (
+                                    <button
+                                        key={opt}
+                                        onClick={() => handleAnswer(q.id, opt)}
+                                        style={{
+                                            padding: '0.5rem 0.75rem',
+                                            textAlign: 'left',
+                                            border: isSelected
+                                                ? '2px solid #4F46E5'
+                                                : '1.5px solid #E5E7EB',
+                                            borderRadius: '7px',
+                                            background: isSelected ? '#EEF2FF' : 'white',
+                                            cursor: 'pointer',
+                                            fontSize: '0.82rem',
+                                            color: isSelected ? '#4F46E5' : '#374151',
+                                            fontWeight: isSelected ? '600' : '400',
+                                            transition: 'all 0.15s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem'
+                                        }}
+                                    >
+                                        <span style={{
+                                            width: '22px', height: '22px',
+                                            borderRadius: '50%',
+                                            background: isSelected ? '#4F46E5' : '#F3F4F6',
+                                            color: isSelected ? 'white' : '#6B7280',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontWeight: '700',
+                                            fontSize: '0.75rem',
+                                            flexShrink: 0
+                                        }}>
+                                            {opt}
+                                        </span>
+                                        {optText}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
+
+                {/* Submit */}
+                <button
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    style={{
+                        width: '100%', padding: '0.85rem',
+                        background: submitting
+                            ? '#9CA3AF'
+                            : 'linear-gradient(135deg, #10B981, #059669)',
+                        color: 'white', border: 'none',
+                        borderRadius: '10px',
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                        fontWeight: '700', fontSize: '0.95rem',
+                        boxShadow: '0 4px 12px rgba(16,185,129,0.25)',
+                        marginTop: '0.5rem'
+                    }}
+                >
+                    {submitting ? '⏳ Submitting...' : '✅ Submit Assessment'}
+                </button>
+            </div>
+        )}
+    </div>
+)}
                 {/* ── Discussions Tab ── */}
                 {activeTab === 'discussions' && (
                     <div className="discussions-list">
