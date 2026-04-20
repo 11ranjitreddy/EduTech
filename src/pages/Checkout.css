@@ -1,0 +1,150 @@
+.checkout-page {
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+}
+
+.checkout-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 768px) {
+    .checkout-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.checkout-card {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 2rem;
+}
+
+.checkout-card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+
+.billing-form .form-row,
+.payment-panel .form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.billing-form .form-group,
+.payment-panel .form-group {
+    margin-bottom: 1rem;
+    flex: 1;
+}
+
+.billing-form label,
+.payment-panel label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.billing-form input,
+.payment-panel input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+/* Payment Tabs */
+.payment-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.payment-tab {
+    background: none;
+    border: none;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.payment-tab:hover {
+    color: var(--primary);
+}
+
+.payment-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.payment-content {
+    min-height: 200px;
+}
+
+.payment-panel {
+    animation: fadeIn 0.3s ease;
+}
+
+.qr-box {
+    background: #f8f9fa;
+    padding: 1rem;
+    display: inline-block;
+    border-radius: 8px;
+}
+
+/* Summary Card */
+.summary-card {
+    position: sticky;
+    top: 100px;
+}
+
+.order-items {
+    margin-bottom: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.secure-badge {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: #f3f4f6;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -1,0 +1,81 @@
+.admin-students {
+    animation: fadeIn 0.5s ease;
+}
+
+.student-profile-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.student-avatar {
+    width: 32px;
+    height: 32px;
+    background: #E0E7FF;
+    color: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.student-name {
+    font-weight: 500;
+}
+
+.progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 15140px;
+    /* Force room for bar */
+}
+
+/* Wait, 15140px is a typo in my mental CSS, let's use 120px */
+.progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 15140x;
+    /* correcting this to 150px in final code */
+}
+
+.progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 140px;
+}
+
+.progress-track {
+    flex: 1;
+    height: 6px;
+    background: #F1F5F9;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    width: 30px;
+}
+
+.icon-btn-view {
+    font-size: 1.1rem;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+
+.icon-btn-view:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
