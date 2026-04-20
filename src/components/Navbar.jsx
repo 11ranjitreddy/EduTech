@@ -1,154 +1,187 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Button from './Button';
 import { useCart } from '../context/CartContext';
 import './Navbar.css';
 
 const Navbar = () => {
-    const { cartCount } = useCart();
-    const { user, isAuthenticated, logout } = useAuth();
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const navigate = useNavigate();
+  const { cartCount } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
 
-    // ✅ Handle search
-    const handleSearch = (e) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            navigate(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
-        }
+  const getUserInitials = () => {
+    if (!user?.name) return 'U';
+    return user.name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Handle search
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setIsSearchOpen(false);
+      }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') handleSearch(e);
-    };
+  const handleLogout = () => {
+    logout();
+    setIsDropdownOpen(false);
+    navigate('/');
+  };
 
-    return (
-        <nav className="navbar">
-            <div className="container navbar-container">
-                {/* Logo */}
-                <Link to="/" className="navbar-logo">
-                    EdTech<span className="dot">.</span>
-                </Link>
+  return (
+    <nav className="navbar">
+      <div className="navbar-container">
 
-                {/* ✅ Search Bar */}
-                <div className="navbar-search">
-                    <input
-                        type="text"
-                        placeholder="Search courses, topics, instructors..."
-                        className="search-input"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                    />
-                    <button className="search-btn" onClick={handleSearch}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                    </button>
-                </div>
+        {/* LEFT - LOGO */}
+        <Link to="/" className="navbar-logo">
+          EdTech<span className="dot">.</span>
+        </Link>
 
-                {/* Navigation */}
-                <div className="navbar-links">
-                    <Link to="/" className="nav-link">Home</Link>
+        {/* SEARCH BAR - Desktop */}
+        <form onSubmit={handleSearch} className="navbar-search">
+          <button type="submit" className="search-btn">🔍</button>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search courses, tutorials..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
 
-                    <div
-                        className="nav-item-dropdown"
-                        onMouseEnter={() => setIsDropdownOpen(true)}
-                        onMouseLeave={() => setIsDropdownOpen(false)}
-                    >
-                        <Link to="/courses" className="nav-link dropdown-trigger">
-                            Courses
-                            <svg className={`chevron ${isDropdownOpen ? 'rotate' : ''}`}
-                                xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </Link>
+        {/* RIGHT SIDE */}
+        <div className="navbar-right">
 
-                        {isDropdownOpen && (
-                            <div className="dropdown-menu">
-                                <Link to="/courses" className="dropdown-item">All Courses</Link>
-                                <Link to="/courses?category=python" className="dropdown-item">Python</Link>
-                                <Link to="/courses?category=java" className="dropdown-item">Java</Link>
-                                <Link to="/courses?category=app-dev" className="dropdown-item">App Development</Link>
-                                <Link to="/courses?category=web-dev" className="dropdown-item">Web Development</Link>
-                                <Link to="/courses?category=ai-ml" className="dropdown-item">AI / ML</Link>
-                            </div>
-                        )}
-                    </div>
-
-                    <Link to="/contact" className="nav-link">Contact Us</Link>
-                    {/* <Link to="/contact" className="nav-link">Contact Us</Link> */}
-
-<Link to="/live-classes" className="nav-link" style={{
-    color: '#DC2626',
-    fontWeight: '600'
-}}>
-    🔴 Live
-</Link>
-                    {isAuthenticated && (
-                        <Link to="/my-courses" className="nav-link"
-                            style={{ color: 'var(--primary)', fontWeight: '600' }}>
-                            My Learning
-                        </Link>
-                    )}
-                </div>
-
-                {/* Auth Buttons */}
-                <div className="navbar-auth">
-                    <Link to="/cart" className="cart-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="9" cy="21" r="1"></circle>
-                            <circle cx="20" cy="21" r="1"></circle>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                        </svg>
-                        {cartCount > 0 && (
-                            <span style={{
-                                position: 'absolute', top: '-8px', right: '-8px',
-                                background: 'var(--primary)', color: 'white',
-                                borderRadius: '50%', width: '18px', height: '18px',
-                                display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
-                            }}>
-                                {cartCount}
-                            </span>
-                        )}
-                    </Link>
-                    {isAuthenticated ? (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {/* ✅ Only show profile link for students */}
-        {user?.role === 'ADMIN' ? (
-            <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
-                Hi, {user?.name}
-            </span>
-        ) : (
-            <Link to="/profile" style={{
-                color: 'var(--text-main)',
-                fontWeight: '500',
-                textDecoration: 'none'
-            }}>
-                Hi, {user?.name}
+          {/* LINKS */}
+          <div className="navbar-links">
+            <Link to="/" className="nav-link">Home</Link>
+            <Link to="/courses" className="nav-link">Courses</Link>
+            
+            {/* LIVE CLASS - HIGHLIGHTED */}
+            <Link to="/live-class" className="nav-link live-class-link">
+              Live Class
+              <span className="live-badge">LIVE</span>
+              <span className="live-dot"></span>
             </Link>
-        )}
-        <Button variant="outline" onClick={logout}>Logout</Button>
-    </div>
-) : (
-    <Link to="/login">
-        <Button variant="primary">Login / Register</Button>
-    </Link>
-)}
+            
+            <Link to="/contact" className="nav-link">Contact</Link>
+          </div>
+
+          {/* AUTH + CART */}
+          <div className="navbar-auth">
+
+            {/* Mobile Search Toggle */}
+            <button 
+              className="mobile-search-toggle"
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+            >
+              🔍
+            </button>
+
+            <Link to="/cart" className="cart-icon">
+              🛒
+              {cartCount > 0 && (
+                <span className="cart-badge">{cartCount}</span>
+              )}
+            </Link>
+
+            {isAuthenticated ? (
+              <div className="profile-container" ref={dropdownRef}>
+                <div 
+                  className="profile-trigger"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  <div className="profile-avatar">
+                    {getUserInitials()}
+                  </div>
+                  <span className="user-name">{user?.name}</span>
+                  <span className={`chevron-icon ${isDropdownOpen ? 'rotated' : ''}`}>
+                    ▼
+                  </span>
                 </div>
-            </div>
-        </nav>
-    );
+
+                {/* PROFILE DROPDOWN - ONLY PROFILE & LOGOUT */}
+                <div className={`profile-dropdown ${isDropdownOpen ? 'open' : ''}`}>
+                  <div className="dropdown-header">
+                    <strong>{user?.name}</strong>
+                    <div className="dropdown-email">{user?.email}</div>
+                  </div>
+                  
+                  <button 
+                    className="dropdown-item"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      navigate('/profile');
+                    }}
+                  >
+                    <span className="dropdown-icon">👤</span>
+                    My Profile
+                  </button>
+                  
+                  <div className="dropdown-divider"></div>
+                  
+                  <button 
+                    className="dropdown-item logout-item"
+                    onClick={handleLogout}
+                  >
+                    <span className="dropdown-icon">🚪</span>
+                    Logout
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button className="btn-primary" onClick={() => navigate('/login')}>
+                Login
+              </button>
+            )}
+
+          </div>
+
+        </div>
+      </div>
+
+      {/* Mobile Search Bar */}
+      {isSearchOpen && (
+        <form onSubmit={handleSearch} className="mobile-search">
+          <input
+            type="text"
+            className="mobile-search-input"
+            placeholder="Search courses..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+          <button type="submit" className="mobile-search-btn">Search</button>
+        </form>
+      )}
+    </nav>
+  );
 };
 
 export default Navbar;
